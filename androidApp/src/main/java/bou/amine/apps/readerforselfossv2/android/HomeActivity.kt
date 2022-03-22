@@ -1,0 +1,1294 @@
+package bou.amine.apps.readerforselfossv2.android
+
+import android.content.Context
+import android.content.Intent
+import android.content.SharedPreferences
+import android.graphics.Color
+import android.graphics.drawable.Drawable
+import android.graphics.drawable.GradientDrawable
+import android.net.Uri
+import android.os.Bundle
+import androidx.preference.PreferenceManager
+import android.view.Menu
+import android.view.MenuItem
+import android.view.View
+import android.widget.ImageView
+import android.widget.Toast
+import androidx.appcompat.app.ActionBarDrawerToggle
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.SearchView
+import androidx.core.view.doOnNextLayout
+import androidx.drawerlayout.widget.DrawerLayout
+import androidx.recyclerview.widget.*
+import androidx.room.Room
+import androidx.work.Constraints
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import bou.amine.apps.readerforselfossv2.android.adapters.ItemCardAdapter
+import bou.amine.apps.readerforselfossv2.android.adapters.ItemListAdapter
+import bou.amine.apps.readerforselfossv2.android.adapters.ItemsAdapter
+import bou.amine.apps.readerforselfossv2.android.api.selfoss.*
+import bou.amine.apps.readerforselfossv2.android.background.LoadingWorker
+import bou.amine.apps.readerforselfossv2.android.databinding.ActivityHomeBinding
+import bou.amine.apps.readerforselfossv2.android.persistence.database.AppDatabase
+import bou.amine.apps.readerforselfossv2.android.persistence.entities.ActionEntity
+import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_1_2
+import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_2_3
+import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_3_4
+import bou.amine.apps.readerforselfossv2.android.settings.SettingsActivity
+import bou.amine.apps.readerforselfossv2.android.themes.AppColors
+import bou.amine.apps.readerforselfossv2.android.themes.Toppings
+import bou.amine.apps.readerforselfossv2.android.utils.Config
+import bou.amine.apps.readerforselfossv2.android.utils.SharedItems
+import bou.amine.apps.readerforselfossv2.android.utils.bottombar.maybeShow
+import bou.amine.apps.readerforselfossv2.android.utils.bottombar.removeBadge
+import bou.amine.apps.readerforselfossv2.android.utils.customtabs.CustomTabActivityHelper
+import bou.amine.apps.readerforselfossv2.android.utils.longHash
+import bou.amine.apps.readerforselfossv2.android.utils.network.isNetworkAccessible
+import bou.amine.apps.readerforselfossv2.android.utils.persistence.toEntity
+import bou.amine.apps.readerforselfossv2.android.utils.persistence.toView
+import bou.amine.apps.readerforselfossv2.android.api.selfoss.*
+import com.ashokvarma.bottomnavigation.BottomNavigationBar
+import com.ashokvarma.bottomnavigation.BottomNavigationItem
+import com.ashokvarma.bottomnavigation.TextBadgeItem
+import com.bumptech.glide.Glide
+import com.bumptech.glide.request.RequestOptions
+import com.ftinc.scoop.Scoop
+import com.mikepenz.aboutlibraries.LibsBuilder
+import com.mikepenz.materialdrawer.holder.BadgeStyle
+import com.mikepenz.materialdrawer.holder.ColorHolder
+import com.mikepenz.materialdrawer.holder.StringHolder
+import com.mikepenz.materialdrawer.model.DividerDrawerItem
+import com.mikepenz.materialdrawer.model.PrimaryDrawerItem
+import com.mikepenz.materialdrawer.model.ProfileDrawerItem
+import com.mikepenz.materialdrawer.model.SecondaryDrawerItem
+import com.mikepenz.materialdrawer.model.interfaces.*
+import com.mikepenz.materialdrawer.util.AbstractDrawerImageLoader
+import com.mikepenz.materialdrawer.util.DrawerImageLoader
+import com.mikepenz.materialdrawer.util.addStickyFooterItem
+import com.mikepenz.materialdrawer.util.updateBadge
+import com.mikepenz.materialdrawer.widget.AccountHeaderView
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
+
+class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
+
+    private val MENU_PREFERENCES = 12302
+    private val DRAWER_ID_TAGS = 100101L
+    private val DRAWER_ID_HIDDEN_TAGS = 101100L
+    private val DRAWER_ID_SOURCES = 100110L
+    private val DRAWER_ID_FILTERS = 100111L
+    private val UNREAD_SHOWN = 1
+    private val READ_SHOWN = 2
+    private val FAV_SHOWN = 3
+
+    private var items: ArrayList<Item> = ArrayList()
+    private var allItems: ArrayList<Item> = ArrayList()
+
+    private var internalBrowser = false
+    private var articleViewer = false
+    private var shouldBeCardView = false
+    private var displayUnreadCount = false
+    private var displayAllCount = false
+    private var fullHeightCards: Boolean = false
+    private var itemsNumber: Int = 200
+    private var elementsShown: Int = 1
+    private var userIdentifier: String = ""
+    private var displayAccountHeader: Boolean = false
+    private var infiniteScroll: Boolean = false
+    private var lastFetchDone: Boolean = false
+    private var itemsCaching: Boolean = false
+    private var updateSources: Boolean = true
+    private var markOnScroll: Boolean = false
+    private var hiddenTags: List<String> = emptyList()
+    private var apiVersionMajor: Int = 0
+
+    private var periodicRefresh = false
+    private var refreshMinutes: Long = 360L
+    private var refreshWhenChargingOnly = false
+
+    private lateinit var tabNewBadge: TextBadgeItem
+    private lateinit var tabArchiveBadge: TextBadgeItem
+    private lateinit var tabStarredBadge: TextBadgeItem
+    private lateinit var api: SelfossApi
+    private lateinit var customTabActivityHelper: CustomTabActivityHelper
+    private lateinit var editor: SharedPreferences.Editor
+    private lateinit var sharedPref: SharedPreferences
+    private lateinit var appColors: AppColors
+    private var offset: Int = 0
+    private var firstVisible: Int = 0
+    private lateinit var recyclerViewScrollListener: RecyclerView.OnScrollListener
+    private lateinit var settings: SharedPreferences
+    private lateinit var binding: ActivityHomeBinding
+
+    private var recyclerAdapter: RecyclerView.Adapter<*>? = null
+
+    private var fromTabShortcut: Boolean = false
+    private var offlineShortcut: Boolean = false
+
+    private lateinit var tagsBadge: Map<Long, Int>
+
+    private lateinit var db: AppDatabase
+
+    private lateinit var config: Config
+
+    data class DrawerData(val tags: List<Tag>?, val sources: List<Source>?)
+
+    override fun onStart() {
+        super.onStart()
+        customTabActivityHelper.bindCustomTabsService(this)
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        appColors = AppColors(this@HomeActivity)
+        config = Config(this@HomeActivity)
+
+        super.onCreate(savedInstanceState)
+        binding = ActivityHomeBinding.inflate(layoutInflater)
+        val view = binding.root
+
+        fromTabShortcut =  intent.getIntExtra("shortcutTab", -1) != -1
+        offlineShortcut =  intent.getBooleanExtra("startOffline", false)
+
+        if (fromTabShortcut) {
+            elementsShown = intent.getIntExtra("shortcutTab", UNREAD_SHOWN)
+        }
+
+        setContentView(view)
+
+        handleThemeBinding()
+
+        setSupportActionBar(binding.toolBar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.setHomeButtonEnabled(true)
+        val mDrawerToggle = ActionBarDrawerToggle(this, binding.drawerContainer, binding.toolBar, R.string.material_drawer_open, R.string.material_drawer_close)
+        binding.drawerContainer.addDrawerListener(mDrawerToggle)
+        mDrawerToggle.syncState()
+
+        db = Room.databaseBuilder(
+            applicationContext,
+            AppDatabase::class.java, "selfoss-database"
+        ).addMigrations(MIGRATION_1_2).addMigrations(MIGRATION_2_3).addMigrations(MIGRATION_3_4).build()
+
+
+        customTabActivityHelper = CustomTabActivityHelper()
+
+        sharedPref = PreferenceManager.getDefaultSharedPreferences(this)
+        settings = getSharedPreferences(Config.settingsName, Context.MODE_PRIVATE)
+
+        api = SelfossApi(
+            this,
+            this@HomeActivity,
+            settings.getBoolean("isSelfSignedCert", false),
+            sharedPref.getString("api_timeout", "-1")!!.toLong()
+        )
+        items = ArrayList()
+        allItems = ArrayList()
+
+        handleBottomBar()
+        handleDrawer()
+
+        handleSwipeRefreshLayout()
+
+        handleSharedPrefs()
+
+        getApiMajorVersion()
+
+        getElementsAccordingToTab()
+    }
+
+    private fun handleSwipeRefreshLayout() {
+        binding.swipeRefreshLayout.setColorSchemeResources(
+            R.color.refresh_progress_1,
+            R.color.refresh_progress_2,
+            R.color.refresh_progress_3
+        )
+        binding.swipeRefreshLayout.setOnRefreshListener {
+            offlineShortcut = false
+            allItems = ArrayList()
+            lastFetchDone = false
+            handleDrawerItems()
+            CoroutineScope(Dispatchers.Main).launch {
+                refreshFocusedItems(applicationContext, api, db, itemsNumber)
+                getElementsAccordingToTab()
+                binding.swipeRefreshLayout.isRefreshing = false
+            }
+        }
+
+        val simpleItemTouchCallback =
+            object : ItemTouchHelper.SimpleCallback(
+                0,
+                ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT
+            ) {
+                override fun getSwipeDirs(
+                    recyclerView: RecyclerView,
+                    viewHolder: RecyclerView.ViewHolder
+                ): Int =
+                    if (elementsShown == FAV_SHOWN) {
+                        0
+                    } else {
+                        super.getSwipeDirs(
+                            recyclerView,
+                            viewHolder
+                        )
+                    }
+
+                override fun onMove(
+                    recyclerView: RecyclerView,
+                    viewHolder: RecyclerView.ViewHolder,
+                    target: RecyclerView.ViewHolder
+                ): Boolean = false
+
+                override fun onSwiped(viewHolder: RecyclerView.ViewHolder, swipeDir: Int) {
+                    val position = viewHolder.bindingAdapterPosition
+                    val i = items.elementAtOrNull(position)
+
+                    if (i != null) {
+                        val adapter = binding.recyclerView.adapter as ItemsAdapter<*>
+
+                        adapter.handleItemAtIndex(position)
+
+                        reloadBadgeContent()
+
+                        val tagHashes = i.tags.tags.split(",").map { it.longHash() }
+                        tagsBadge = tagsBadge.map {
+                            if (tagHashes.contains(it.key)) {
+                                (it.key to (it.value - 1))
+                            } else {
+                                (it.key to it.value)
+                            }
+                        }.toMap()
+                        reloadTagsBadges()
+
+                        // Just load everythin
+                        if (items.size <= 0) {
+                            getElementsAccordingToTab()
+                        }
+                    } else {
+                        Toast.makeText(
+                            this@HomeActivity,
+                            "Found null when swiping at positon $position.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+            }
+
+        ItemTouchHelper(simpleItemTouchCallback).attachToRecyclerView(binding.recyclerView)
+    }
+
+    private fun handleBottomBar() {
+
+        tabNewBadge = TextBadgeItem()
+            .setText("")
+            .setHideOnSelect(false).hide(false)
+            .setBackgroundColor(appColors.colorPrimary)
+        tabArchiveBadge = TextBadgeItem()
+            .setText("")
+            .setHideOnSelect(false).hide(false)
+            .setBackgroundColor(appColors.colorPrimary)
+        tabStarredBadge = TextBadgeItem()
+            .setText("")
+            .setHideOnSelect(false).hide(false)
+            .setBackgroundColor(appColors.colorPrimary)
+
+        val tabNew =
+            BottomNavigationItem(
+                R.drawable.ic_tab_fiber_new_black_24dp,
+                getString(R.string.tab_new)
+            ).setActiveColor(appColors.colorAccent)
+                .setBadgeItem(tabNewBadge)
+        val tabArchive =
+            BottomNavigationItem(
+                R.drawable.ic_tab_archive_black_24dp,
+                getString(R.string.tab_read)
+            ).setActiveColor(appColors.colorAccentDark)
+                .setBadgeItem(tabArchiveBadge)
+        val tabStarred =
+            BottomNavigationItem(
+                R.drawable.ic_tab_favorite_black_24dp,
+                getString(R.string.tab_favs)
+            ).setActiveColorResource(R.color.pink)
+                .setBadgeItem(tabStarredBadge)
+
+        binding.bottomBar
+            .addItem(tabNew)
+            .addItem(tabArchive)
+            .addItem(tabStarred)
+            .setFirstSelectedPosition(0)
+            .initialise()
+        binding.bottomBar.setMode(BottomNavigationBar.MODE_SHIFTING)
+        binding.bottomBar.setBackgroundStyle(BottomNavigationBar.BACKGROUND_STYLE_STATIC)
+
+        if (fromTabShortcut) {
+            binding.bottomBar.selectTab(elementsShown - 1)
+        }
+    }
+
+    private fun getApiMajorVersion() {
+        api.apiVersion.enqueue(object : Callback<ApiVersion> {
+            override fun onFailure(call: Call<ApiVersion>, t: Throwable) {
+                Config.apiVersion = apiVersionMajor
+            }
+
+            override fun onResponse(call: Call<ApiVersion>, response: Response<ApiVersion>) {
+                if(response.body() != null) {
+                    val version = response.body() as ApiVersion
+                    apiVersionMajor = version.getApiMajorVersion()
+                    sharedPref.edit().putInt("apiVersionMajor", apiVersionMajor).apply()
+
+                    Config.apiVersion = apiVersionMajor
+                }
+            }
+        })
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        // TODO: Make this the only appcolors init
+        appColors = AppColors(this@HomeActivity)
+
+        sharedPref = PreferenceManager.getDefaultSharedPreferences(this)
+
+        editor = settings.edit()
+
+        handleDrawerItems()
+
+        handleThemeUpdate()
+
+        reloadLayoutManager()
+
+        if (!infiniteScroll) {
+            binding.recyclerView.setHasFixedSize(true)
+        } else {
+            handleInfiniteScroll()
+        }
+
+        handleBottomBarActions()
+
+        handleRecurringTask()
+
+        handleOfflineActions()
+
+        getElementsAccordingToTab()
+    }
+
+    private fun getAndStoreAllItems() {
+         CoroutineScope(Dispatchers.Main).launch {
+             binding.swipeRefreshLayout.isRefreshing = true
+             getAndStoreAllItems(applicationContext ,api, db)
+             this@HomeActivity.isNetworkAccessible(this@HomeActivity.findViewById(R.id.coordLayout), offlineShortcut)
+             handleListResult()
+             binding.swipeRefreshLayout.isRefreshing = false
+             SharedItems.updateDatabase(db)
+         }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        customTabActivityHelper.unbindCustomTabsService(this)
+    }
+
+    private fun handleSharedPrefs() {
+        internalBrowser = sharedPref.getBoolean("prefer_internal_browser", true)
+        articleViewer = sharedPref.getBoolean("prefer_article_viewer", true)
+        shouldBeCardView = sharedPref.getBoolean("card_view_active", false)
+        displayUnreadCount = sharedPref.getBoolean("display_unread_count", true)
+        displayAllCount = sharedPref.getBoolean("display_other_count", false)
+        fullHeightCards = sharedPref.getBoolean("full_height_cards", false)
+        itemsNumber = sharedPref.getString("prefer_api_items_number", "200")!!.toInt()
+        userIdentifier = sharedPref.getString("unique_id", "")!!
+        displayAccountHeader = sharedPref.getBoolean("account_header_displaying", false)
+        infiniteScroll = sharedPref.getBoolean("infinite_loading", false)
+        itemsCaching = sharedPref.getBoolean("items_caching", false)
+        SharedItems.itemsCaching = itemsCaching
+        updateSources = sharedPref.getBoolean("update_sources", true)
+        markOnScroll = sharedPref.getBoolean("mark_on_scroll", false)
+        hiddenTags = if (sharedPref.getString("hidden_tags", "")!!.isNotEmpty()) {
+            sharedPref.getString("hidden_tags", "")!!.replace("\\s".toRegex(), "").split(",")
+        } else {
+            emptyList()
+        }
+        periodicRefresh = sharedPref.getBoolean("periodic_refresh", false)
+        refreshWhenChargingOnly = sharedPref.getBoolean("refresh_when_charging", false)
+        refreshMinutes = sharedPref.getString("periodic_refresh_minutes", "360")!!.toLong()
+
+        if (refreshMinutes <= 15) {
+            refreshMinutes = 15
+        }
+
+        apiVersionMajor = sharedPref.getInt("apiVersionMajor", 0)
+    }
+
+    private fun handleThemeBinding() {
+        val scoop = Scoop.getInstance()
+        scoop.bind(this, Toppings.PRIMARY.value, binding.toolBar)
+        scoop.bindStatusBar(this, Toppings.PRIMARY_DARK.value)
+    }
+
+    private fun handleThemeUpdate() {
+
+        val scoop = Scoop.getInstance()
+        scoop.update(Toppings.PRIMARY.value, appColors.colorPrimary)
+
+        scoop.update(Toppings.PRIMARY_DARK.value, appColors.colorPrimaryDark)
+    }
+
+    private fun handleDrawer() {
+        DrawerImageLoader.init(object : AbstractDrawerImageLoader() {
+            override fun set(imageView: ImageView, uri: Uri, placeholder: Drawable, tag: String?) {
+                Glide.with(this@HomeActivity)
+                        .asBitmap()
+                        .load(uri)
+                        .apply(RequestOptions()
+                                .placeholder(R.mipmap.ic_launcher)
+                                .fallback(R.mipmap.ic_launcher)
+                                .fitCenter())
+                        .into(imageView)
+            }
+
+            override fun cancel(imageView: ImageView) {
+                Glide.with(this@HomeActivity).clear(imageView)
+            }
+        })
+
+        val drawerListener = object : DrawerLayout.DrawerListener {
+            override fun onDrawerSlide(drawerView: View, slideOffset: Float) {
+            }
+
+            override fun onDrawerOpened(drawerView: View) {
+                binding.bottomBar.hide()
+            }
+
+            override fun onDrawerClosed(drawerView: View) {
+                binding.bottomBar.show()
+            }
+
+            override fun onDrawerStateChanged(newState: Int) {
+            }
+
+        }
+
+        binding.drawerContainer.addDrawerListener(drawerListener)
+
+        displayAccountHeader =
+                PreferenceManager.getDefaultSharedPreferences(this)
+                    .getBoolean("account_header_displaying", false)
+
+        binding.mainDrawer.addStickyFooterItem(
+            PrimaryDrawerItem().apply {
+                nameRes = R.string.drawer_report_bug
+                iconRes = R.drawable.ic_bug_report_black_24dp
+                isIconTinted = true
+                onDrawerItemClickListener = { _, _, _ ->
+                    val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(Config.trackerUrl))
+                    startActivity(browserIntent)
+                    false
+                }
+            })
+
+        binding.mainDrawer.addStickyFooterItem(
+            PrimaryDrawerItem().apply {
+                nameRes = R.string.title_activity_settings
+                iconRes = R.drawable.ic_settings_black_24dp
+                isIconTinted = true
+                onDrawerItemClickListener = { _, _, _ ->
+                    startActivity(Intent(this@HomeActivity, SettingsActivity::class.java))
+                    false
+                }
+            })
+
+        if (displayAccountHeader) {
+            AccountHeaderView(this).apply {
+                attachToSliderView(binding.mainDrawer)
+                addProfiles(
+                    ProfileDrawerItem().apply {
+                        nameText = settings.getString("url", "").toString()
+                        setBackgroundResource(R.drawable.bg)
+                        iconRes = R.mipmap.ic_launcher
+                        selectionListEnabledForSingleProfile = false
+                    }
+                )
+            }
+        }
+    }
+
+    private fun handleDrawerItems() {
+        tagsBadge = emptyMap()
+        fun handleDrawerData(maybeDrawerData: DrawerData?, loadedFromCache: Boolean = false) {
+            fun handleTags(maybeTags: List<Tag>?) {
+                if (maybeTags == null) {
+                    if (loadedFromCache) {
+                        binding.mainDrawer.itemAdapter.add(
+                            SecondaryDrawerItem()
+                                .apply { nameRes = R.string.drawer_error_loading_tags; isSelectable = false }
+                        )
+                    }
+                } else {
+                    val filteredTags = maybeTags
+                        .filterNot { hiddenTags.contains(it.tag) }
+                        .sortedBy { it.unread == 0 }
+                    tagsBadge = filteredTags.map {
+                        val gd = GradientDrawable()
+                        val gdColor = try {
+                            Color.parseColor(it.color)
+                        } catch (e: IllegalArgumentException) {
+                            appColors.colorPrimary
+                        }
+
+                        gd.setColor(gdColor)
+                        gd.shape = GradientDrawable.RECTANGLE
+                        gd.setSize(30, 30)
+                        gd.cornerRadius = 30F
+                        val drawerItem =
+                            PrimaryDrawerItem()
+                                .apply {
+                                    nameText = it.getTitleDecoded()
+                                    identifier = it.tag.longHash()
+                                    iconDrawable = gd
+                                    badgeStyle = BadgeStyle().apply {
+                                        textColor = ColorHolder.fromColor(Color.WHITE)
+                                        color = ColorHolder.fromColor(appColors.colorAccent) }
+                                    onDrawerItemClickListener = { _,_,_ ->
+                                        allItems = ArrayList()
+                                        SharedItems.tagFilter = it.tag
+                                        SharedItems.sourceFilter = null
+                                        SharedItems.sourceIDFilter = null
+                                        getElementsAccordingToTab()
+                                        fetchOnEmptyList()
+                                        false
+                                    } }
+                        if (it.unread > 0) {
+                            drawerItem.badgeText = it.unread.toString()
+                        }
+
+                        binding.mainDrawer.itemAdapter.add(drawerItem)
+
+                        (it.tag.longHash() to it.unread)
+                    }.toMap()
+                }
+            }
+
+            fun handleHiddenTags(maybeTags: List<Tag>?) {
+                if (maybeTags == null) {
+                    if (loadedFromCache) {
+                        binding.mainDrawer.itemAdapter.add(
+                            SecondaryDrawerItem().apply {
+                                nameRes = R.string.drawer_error_loading_tags
+                                isSelectable = false
+                            }
+                        )
+                    }
+                } else {
+                    val filteredHiddenTags: List<Tag> =
+                        maybeTags.filter { hiddenTags.contains(it.tag) }
+                    tagsBadge = filteredHiddenTags.map {
+                        val gd = GradientDrawable()
+                        val gdColor = try {
+                            Color.parseColor(it.color)
+                        } catch (e: IllegalArgumentException) {
+                            appColors.colorPrimary
+                        }
+
+                        gd.setColor(gdColor)
+                        gd.shape = GradientDrawable.RECTANGLE
+                        gd.setSize(30, 30)
+                        gd.cornerRadius = 30F
+                        val drawerItem =
+                            PrimaryDrawerItem().apply {
+                                nameText = it.getTitleDecoded()
+                                identifier = it.tag.longHash()
+                                iconDrawable = gd
+                                badgeStyle = BadgeStyle().apply {
+                                    textColor = ColorHolder.fromColor(Color.WHITE)
+                                    color = ColorHolder.fromColor(appColors.colorAccent) }
+                                onDrawerItemClickListener = { _,_,_ ->
+                                    allItems = ArrayList()
+                                    SharedItems.tagFilter = it.tag
+                                    SharedItems.sourceFilter = null
+                                    SharedItems.sourceIDFilter = null
+                                    getElementsAccordingToTab()
+                                    fetchOnEmptyList()
+                                    false
+                                } }
+
+                        if (it.unread > 0) {
+                            drawerItem.badgeText = it.unread.toString()
+                        }
+                        binding.mainDrawer.itemAdapter.add(drawerItem)
+
+                        (it.tag.longHash() to it.unread)
+                    }.toMap()
+                }
+            }
+
+            fun handleSources(maybeSources: List<Source>?) {
+                if (maybeSources == null) {
+                    if (loadedFromCache) {
+                        binding.mainDrawer.itemAdapter.add(
+                            SecondaryDrawerItem().apply {
+                                nameRes = R.string.drawer_error_loading_sources
+                                isSelectable = false
+                            }
+                        )
+                    }
+                } else {
+                    for (source in maybeSources) {
+                        val item = PrimaryDrawerItem().apply {
+                            nameText = source.getTitleDecoded()
+                            identifier = source.id.toLong()
+                            iconUrl = source.getIcon(this@HomeActivity)
+                            onDrawerItemClickListener = { _,_,_ ->
+                                allItems = ArrayList()
+                                SharedItems.sourceIDFilter = source.id.toLong()
+                                SharedItems.sourceFilter = source.title
+                                SharedItems.tagFilter = null
+                                getElementsAccordingToTab()
+                                fetchOnEmptyList()
+                                false
+                            }
+                        }
+                        binding.mainDrawer.itemAdapter.add(item)
+                    }
+                }
+            }
+
+            binding.mainDrawer.itemAdapter.clear()
+            if (maybeDrawerData != null) {
+                binding.mainDrawer.itemAdapter.add(
+                    SecondaryDrawerItem().apply {
+                        nameRes = R.string.drawer_item_filters
+                        isSelectable = false
+                        identifier = DRAWER_ID_FILTERS
+                        badgeRes = R.string.drawer_action_clear
+                        onDrawerItemClickListener = { _,_,_ ->
+                            allItems = ArrayList()
+                            SharedItems.sourceFilter = null
+                            SharedItems.sourceIDFilter = null
+                            SharedItems.tagFilter = null
+                            binding.mainDrawer.setSelectionAtPosition(-1)
+                            getElementsAccordingToTab()
+                            fetchOnEmptyList()
+                            false
+                        }
+                    }
+                )
+                if (hiddenTags.isNotEmpty()) {
+                    binding.mainDrawer.itemAdapter.add(
+                        DividerDrawerItem(),
+                        SecondaryDrawerItem().apply {
+                            nameRes = R.string.drawer_item_hidden_tags
+                            identifier = DRAWER_ID_HIDDEN_TAGS
+                            isSelectable = false
+                        }
+                    )
+                    handleHiddenTags(maybeDrawerData.tags)
+                }
+                binding.mainDrawer.itemAdapter.add(
+                    DividerDrawerItem(),
+                    SecondaryDrawerItem().apply {
+                        nameRes = R.string.drawer_item_tags
+                        identifier = DRAWER_ID_TAGS
+                        isSelectable = false
+                    }
+                )
+                handleTags(maybeDrawerData.tags)
+                binding.mainDrawer.itemAdapter.add(
+                    DividerDrawerItem(),
+                    SecondaryDrawerItem().apply {
+                        nameRes = R.string.drawer_item_sources
+                        identifier = DRAWER_ID_SOURCES
+                        isSelectable = false
+                        badgeRes = R.string.drawer_action_edit
+                        onDrawerItemClickListener = { v,_,_ ->
+                            startActivity(Intent(v!!.context, SourcesActivity::class.java))
+                            false
+                        }
+                    }
+                )
+                handleSources(maybeDrawerData.sources)
+                binding.mainDrawer.itemAdapter.add(
+                    DividerDrawerItem(),
+                    PrimaryDrawerItem().apply {
+                        nameRes = R.string.action_about
+                        isSelectable = false
+                        iconRes = R.drawable.ic_info_outline_white_24dp
+                        isIconTinted = true
+                        onDrawerItemClickListener = { _,_,_ ->
+                            LibsBuilder()
+                                .withAboutIconShown(true)
+                                .withAboutVersionShown(true)
+                                .start(this@HomeActivity)
+                            false
+                        }
+                    }
+                )
+
+                if (!loadedFromCache) {
+                    if (maybeDrawerData.tags != null) {
+                        thread {
+                            val tagEntities = maybeDrawerData.tags.map { it.toEntity() }
+                            db.drawerDataDao().deleteAllTags()
+                            db.drawerDataDao().insertAllTags(*tagEntities.toTypedArray())
+                        }
+                    }
+                    if (maybeDrawerData.sources != null) {
+                        thread {
+                            val sourceEntities =
+                                maybeDrawerData.sources.map { it.toEntity() }
+                            db.drawerDataDao().deleteAllSources()
+                            db.drawerDataDao().insertAllSources(*sourceEntities.toTypedArray())
+                        }
+                    }
+                }
+            } else {
+                if (!loadedFromCache) {
+                    binding.mainDrawer.itemAdapter.add(
+                        PrimaryDrawerItem().apply {
+                            nameRes = R.string.no_tags_loaded
+                            identifier = DRAWER_ID_TAGS
+                            isSelectable = false
+                        },
+                        PrimaryDrawerItem().apply {
+                            nameRes = R.string.no_sources_loaded
+                            identifier = DRAWER_ID_SOURCES
+                            isSelectable = false
+                        }
+                    )
+                }
+            }
+        }
+
+        fun drawerApiCalls(maybeDrawerData: DrawerData?) {
+            var tags: List<Tag>? = null
+            var sources: List<Source>?
+
+            fun sourcesApiCall() {
+                if (this@HomeActivity.isNetworkAccessible(null, offlineShortcut) && updateSources) {
+                    api.sources.enqueue(object : Callback<List<Source>> {
+                        override fun onResponse(
+                            call: Call<List<Source>>?,
+                            response: Response<List<Source>>
+                        ) {
+                            sources = response.body()
+                            val apiDrawerData = DrawerData(tags, sources)
+                            if ((maybeDrawerData != null && maybeDrawerData != apiDrawerData) || maybeDrawerData == null) {
+                                handleDrawerData(apiDrawerData)
+                            }
+                        }
+
+                        override fun onFailure(call: Call<List<Source>>?, t: Throwable?) {
+                            val apiDrawerData = DrawerData(tags, null)
+                            if ((maybeDrawerData != null && maybeDrawerData != apiDrawerData) || maybeDrawerData == null) {
+                                handleDrawerData(apiDrawerData)
+                            }
+                        }
+                    })
+                }
+            }
+
+            if (this@HomeActivity.isNetworkAccessible(null, offlineShortcut) && updateSources) {
+                api.tags.enqueue(object : Callback<List<Tag>> {
+                    override fun onResponse(
+                        call: Call<List<Tag>>,
+                        response: Response<List<Tag>>
+                    ) {
+                        tags = response.body()
+                        sourcesApiCall()
+                    }
+
+                    override fun onFailure(call: Call<List<Tag>>?, t: Throwable?) {
+                        sourcesApiCall()
+                    }
+                })
+            }
+        }
+
+        binding.mainDrawer.itemAdapter.add(
+            PrimaryDrawerItem().apply {
+                nameRes = R.string.drawer_loading
+                isSelectable = false
+            }
+        )
+
+        thread {
+            val drawerData = DrawerData(db.drawerDataDao().tags().map { it.toView() },
+                                        db.drawerDataDao().sources().map { it.toView() })
+            runOnUiThread {
+                handleDrawerData(drawerData, loadedFromCache = true)
+                drawerApiCalls(drawerData)
+            }
+        }
+    }
+
+    private fun reloadLayoutManager() {
+        val currentManager = binding.recyclerView.layoutManager
+        val layoutManager: RecyclerView.LayoutManager
+
+        // This will only update the layout manager if settings changed
+        when (currentManager) {
+            is StaggeredGridLayoutManager ->
+                if (!shouldBeCardView) {
+                    layoutManager = GridLayoutManager(
+                        this,
+                        calculateNoOfColumns()
+                    )
+                    binding.recyclerView.layoutManager = layoutManager
+                }
+            is GridLayoutManager ->
+                if (shouldBeCardView) {
+                    layoutManager = StaggeredGridLayoutManager(
+                        calculateNoOfColumns(),
+                        StaggeredGridLayoutManager.VERTICAL
+                    )
+                    layoutManager.gapStrategy =
+                            StaggeredGridLayoutManager.GAP_HANDLING_MOVE_ITEMS_BETWEEN_SPANS
+                    binding.recyclerView.layoutManager = layoutManager
+                }
+            else ->
+                if (currentManager == null) {
+                    if (!shouldBeCardView) {
+                        layoutManager = GridLayoutManager(
+                            this,
+                            calculateNoOfColumns()
+                        )
+                        binding.recyclerView.layoutManager = layoutManager
+                    } else {
+                        layoutManager = StaggeredGridLayoutManager(
+                            calculateNoOfColumns(),
+                            StaggeredGridLayoutManager.VERTICAL
+                        )
+                        layoutManager.gapStrategy =
+                                StaggeredGridLayoutManager.GAP_HANDLING_MOVE_ITEMS_BETWEEN_SPANS
+                        binding.recyclerView.layoutManager = layoutManager
+                    }
+                }
+        }
+    }
+
+    private fun handleBottomBarActions() {
+        binding.bottomBar.setTabSelectedListener(object : BottomNavigationBar.OnTabSelectedListener {
+            override fun onTabUnselected(position: Int) = Unit
+
+            override fun onTabReselected(position: Int) {
+                val layoutManager = binding.recyclerView.adapter
+
+                when (layoutManager) {
+                    is StaggeredGridLayoutManager ->
+                        if (layoutManager.findFirstCompletelyVisibleItemPositions(null)[0] == 0) {
+                            getElementsAccordingToTab()
+                        } else {
+                            layoutManager.scrollToPositionWithOffset(0, 0)
+                        }
+                    is GridLayoutManager ->
+                        if (layoutManager.findFirstCompletelyVisibleItemPosition() == 0) {
+                            getElementsAccordingToTab()
+                        } else {
+                            layoutManager.scrollToPositionWithOffset(0, 0)
+                        }
+                    else -> Unit
+                }
+            }
+
+            override fun onTabSelected(position: Int) {
+                offset = 0
+                lastFetchDone = false
+
+                elementsShown = position + 1
+                getElementsAccordingToTab()
+                binding.recyclerView.scrollToPosition(0)
+
+                fetchOnEmptyList()
+            }
+        })
+    }
+
+    private fun fetchOnEmptyList() {
+        binding.recyclerView.doOnNextLayout {
+            if (SharedItems.focusedItems.size - 1 == getLastVisibleItem()) {
+                getElementsAccordingToTab(true)
+            }
+        }
+    }
+
+    private fun handleInfiniteScroll() {
+        recyclerViewScrollListener = object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(localRecycler: RecyclerView, dx: Int, dy: Int) {
+                if (dy > 0) {
+                    val lastVisibleItem = getLastVisibleItem()
+
+                    if (lastVisibleItem == (items.size - 1) && items.size < maxItemNumber()) {
+                        getElementsAccordingToTab(appendResults = true)
+                    }
+                }
+            }
+        }
+
+        binding.recyclerView.clearOnScrollListeners()
+        binding.recyclerView.addOnScrollListener(recyclerViewScrollListener)
+    }
+
+    private fun getLastVisibleItem() : Int {
+        val manager = binding.recyclerView.layoutManager
+        return when (manager) {
+            is StaggeredGridLayoutManager -> manager.findLastCompletelyVisibleItemPositions(
+                null
+            ).last()
+            is GridLayoutManager -> manager.findLastCompletelyVisibleItemPosition()
+            else -> 0
+        }
+    }
+
+    private fun mayBeEmpty() =
+        if (items.isEmpty()) {
+            binding.emptyText.visibility = View.VISIBLE
+        } else {
+            binding.emptyText.visibility = View.GONE
+        }
+
+    private fun getElementsAccordingToTab(
+        appendResults: Boolean = false,
+        offsetOverride: Int? = null
+    ) {
+        fun doGetAccordingToTab() {
+            when (elementsShown) {
+                UNREAD_SHOWN -> getUnRead(appendResults)
+                READ_SHOWN -> getRead(appendResults)
+                FAV_SHOWN -> getStarred(appendResults)
+                else -> getUnRead(appendResults)
+            }
+        }
+
+        offset = if (appendResults) {
+            SharedItems.focusedItems.size - 1
+        } else {
+            0
+        }
+        firstVisible = if (appendResults) firstVisible else 0
+
+        doGetAccordingToTab()
+    }
+
+    private fun getUnRead(appendResults: Boolean = false) {
+        CoroutineScope(Dispatchers.Main).launch {
+            if (appendResults || !SharedItems.fetchedUnread) {
+                binding.swipeRefreshLayout.isRefreshing = true
+                getUnreadItems(applicationContext, api, db, itemsNumber, offset)
+                binding.swipeRefreshLayout.isRefreshing = false
+            }
+            SharedItems.getUnRead()
+            items = SharedItems.focusedItems
+            handleListResult()
+        }
+    }
+
+    private fun getRead(appendResults: Boolean = false) {
+        CoroutineScope(Dispatchers.Main).launch {
+            if (appendResults || !SharedItems.fetchedAll) {
+                binding.swipeRefreshLayout.isRefreshing = true
+                getReadItems(applicationContext, api, db, itemsNumber, offset)
+                binding.swipeRefreshLayout.isRefreshing = false
+            }
+            SharedItems.getAll()
+            items = SharedItems.focusedItems
+            handleListResult()
+        }
+    }
+
+    private fun getStarred(appendResults: Boolean = false) {
+        CoroutineScope(Dispatchers.Main).launch {
+            if (appendResults || !SharedItems.fetchedStarred) {
+                binding.swipeRefreshLayout.isRefreshing = true
+                getStarredItems(applicationContext, api, db, itemsNumber, offset)
+                binding.swipeRefreshLayout.isRefreshing = false
+            }
+            SharedItems.getStarred()
+            items = SharedItems.focusedItems
+            handleListResult()
+        }
+    }
+
+    private fun handleListResult(appendResults: Boolean = false) {
+        if (appendResults) {
+            val oldManager = binding.recyclerView.layoutManager
+            firstVisible = when (oldManager) {
+                is StaggeredGridLayoutManager ->
+                    oldManager.findFirstCompletelyVisibleItemPositions(null).last()
+                is GridLayoutManager ->
+                    oldManager.findFirstCompletelyVisibleItemPosition()
+                else -> 0
+            }
+        }
+
+        if (recyclerAdapter == null) {
+            if (shouldBeCardView) {
+                recyclerAdapter =
+                        ItemCardAdapter(
+                            this,
+                            items,
+                            api,
+                            db,
+                            customTabActivityHelper,
+                            internalBrowser,
+                            articleViewer,
+                            fullHeightCards,
+                            appColors,
+                            userIdentifier,
+                            config
+                        ) {
+                            updateItems(it)
+                        }
+            } else {
+                recyclerAdapter =
+                        ItemListAdapter(
+                            this,
+                            items,
+                            api,
+                            db,
+                            customTabActivityHelper,
+                            internalBrowser,
+                            articleViewer,
+                            userIdentifier,
+                            appColors,
+                            config
+                        ) {
+                            updateItems(it)
+                        }
+
+                binding.recyclerView.addItemDecoration(
+                    DividerItemDecoration(
+                        this@HomeActivity,
+                        DividerItemDecoration.VERTICAL
+                    )
+                )
+            }
+            binding.recyclerView.adapter = recyclerAdapter
+        } else {
+                (recyclerAdapter as ItemsAdapter<*>).updateAllItems()
+        }
+
+        reloadBadges()
+        mayBeEmpty()
+    }
+
+    private fun reloadBadges() {
+        if (displayUnreadCount || displayAllCount) {
+            CoroutineScope(Dispatchers.Main).launch {
+                reloadBadges(applicationContext, api)
+                reloadBadgeContent()
+            }
+        }
+    }
+
+    private fun reloadBadgeContent() {
+        if (displayUnreadCount) {
+            tabNewBadge
+                .setText(SharedItems.badgeUnread.toString())
+                .maybeShow()
+        }
+        if (displayAllCount) {
+            tabArchiveBadge
+                .setText(SharedItems.badgeAll.toString())
+                .maybeShow()
+            tabStarredBadge
+                .setText(SharedItems.badgeStarred.toString())
+                .maybeShow()
+        }
+    }
+
+    private fun reloadTagsBadges() {
+        tagsBadge.forEach {
+            binding.mainDrawer.updateBadge(it.key, StringHolder(it.value.toString()))
+        }
+        binding.mainDrawer.resetDrawerContent()
+    }
+
+    private fun calculateNoOfColumns(): Int {
+        val displayMetrics = resources.displayMetrics
+        val dpWidth = displayMetrics.widthPixels / displayMetrics.density
+        return (dpWidth / 300).toInt()
+    }
+
+    override fun onQueryTextChange(p0: String?): Boolean {
+        if (p0.isNullOrBlank()) {
+            SharedItems.searchFilter = null
+            getElementsAccordingToTab()
+            fetchOnEmptyList()
+        }
+        return false
+    }
+
+    override fun onQueryTextSubmit(p0: String?): Boolean {
+        SharedItems.searchFilter = p0
+        getElementsAccordingToTab()
+        fetchOnEmptyList()
+        return false
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        val inflater = menuInflater
+        inflater.inflate(R.menu.home_menu, menu)
+
+        val searchItem = menu.findItem(R.id.action_search)
+        val searchView = searchItem.getActionView() as SearchView
+        searchView.setOnQueryTextListener(this)
+
+        return true
+    }
+
+    private fun needsConfirmation(titleRes: Int, messageRes: Int, doFn: () -> Unit) {
+        AlertDialog.Builder(this@HomeActivity)
+            .setMessage(messageRes)
+            .setTitle(titleRes)
+            .setPositiveButton(android.R.string.ok) { _, _ -> doFn() }
+            .setNegativeButton(android.R.string.cancel) { _, _ -> }
+            .create()
+            .show()
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            R.id.refresh -> {
+                if (this@HomeActivity.isNetworkAccessible(null, offlineShortcut)) {
+                    needsConfirmation(R.string.menu_home_refresh, R.string.refresh_dialog_message) {
+                        api.update().enqueue(object : Callback<String> {
+                            override fun onResponse(
+                                call: Call<String>,
+                                response: Response<String>
+                            ) {
+                                Toast.makeText(
+                                    this@HomeActivity,
+                                    R.string.refresh_success_response, Toast.LENGTH_LONG
+                                )
+                                    .show()
+                            }
+
+                            override fun onFailure(call: Call<String>, t: Throwable) {
+                                Toast.makeText(
+                                    this@HomeActivity,
+                                    R.string.refresh_failer_message,
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        })
+                        Toast.makeText(this, R.string.refresh_in_progress, Toast.LENGTH_SHORT).show()
+                    }
+                    return true
+                } else {
+                    return false
+                }
+            }
+            R.id.readAll -> {
+                if (elementsShown == UNREAD_SHOWN) {
+                    needsConfirmation(R.string.readAll, R.string.markall_dialog_message) {
+                        binding.swipeRefreshLayout.isRefreshing = true
+
+                        if (this@HomeActivity.isNetworkAccessible(null, offlineShortcut)) {
+                            CoroutineScope(Dispatchers.Main).launch {
+                                val success = readAll(applicationContext, api, db)
+                                if (success) {
+                                    Toast.makeText(
+                                        this@HomeActivity,
+                                        R.string.all_posts_read,
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    tabNewBadge.removeBadge()
+
+                                    handleDrawerItems()
+
+                                    getElementsAccordingToTab()
+                                } else {
+                                    Toast.makeText(
+                                        this@HomeActivity,
+                                        R.string.all_posts_not_read,
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                                handleListResult()
+                                binding.swipeRefreshLayout.isRefreshing = false
+                            }
+                        }
+                    }
+                }
+                return true
+            }
+            R.id.action_disconnect -> {
+                return Config.logoutAndRedirect(this, this@HomeActivity, editor)
+            }
+            else -> return super.onOptionsItemSelected(item)
+        }
+    }
+
+    private fun maxItemNumber(): Int =
+        when (elementsShown) {
+            UNREAD_SHOWN -> SharedItems.badgeUnread
+            READ_SHOWN -> SharedItems.badgeAll
+            FAV_SHOWN -> SharedItems.badgeStarred
+            else -> SharedItems.badgeUnread // if !elementsShown then unread are fetched.
+        }
+
+    private fun updateItems(adapterItems: ArrayList<Item>) {
+        items = adapterItems
+    }
+
+    private fun handleRecurringTask() {
+        if (periodicRefresh) {
+            val myConstraints = Constraints.Builder()
+                .setRequiresBatteryNotLow(true)
+                .setRequiresCharging(refreshWhenChargingOnly)
+                .setRequiresStorageNotLow(true)
+                .build()
+
+            val backgroundWork =
+                PeriodicWorkRequestBuilder<LoadingWorker>(refreshMinutes, TimeUnit.MINUTES)
+                    .setConstraints(myConstraints)
+                    .addTag("selfoss-loading")
+                    .build()
+
+            WorkManager.getInstance(baseContext).enqueueUniquePeriodicWork("selfoss-loading", ExistingPeriodicWorkPolicy.KEEP, backgroundWork)
+        }
+    }
+
+    private fun handleOfflineActions() {
+        fun <T>doAndReportOnFail(call: Call<T>, action: ActionEntity) {
+           call.enqueue(object: Callback<T> {
+               override fun onResponse(
+                   call: Call<T>,
+                   response: Response<T>
+               ) {
+                   thread {
+                       db.actionsDao().delete(action)
+                   }
+               }
+
+               override fun onFailure(call: Call<T>, t: Throwable) {
+               }
+           })
+        }
+
+        if (this@HomeActivity.isNetworkAccessible(null, offlineShortcut)) {
+            CoroutineScope(Dispatchers.Main).launch {
+                val actions = db.actionsDao().actions()
+
+                actions.forEach { action ->
+                    when {
+                        action.read -> doAndReportOnFail(api.markItem(action.articleId), action)
+                        action.unread -> doAndReportOnFail(api.unmarkItem(action.articleId), action)
+                        action.starred -> doAndReportOnFail(api.starrItem(action.articleId), action)
+                        action.unstarred -> doAndReportOnFail(api.unstarrItem(action.articleId), action)
+                    }
+                }
+            }
+        }
+    }
+}
+

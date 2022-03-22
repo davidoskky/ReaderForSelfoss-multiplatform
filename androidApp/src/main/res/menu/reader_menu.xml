@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:id="@+id/align_left"
+        android:icon="@drawable/ic_format_align_left"
+        android:visible="true"
+        app:showAsAction="ifRoom"
+        android:title="@string/reader_text_align_left" />
+
+    <item android:id="@+id/align_justify"
+        android:icon="@drawable/ic_format_align_justify"
+        android:visible="true"
+        app:showAsAction="ifRoom"
+        android:title="@string/reader_text_align_justify" />
+
+    <item
+        android:id="@+id/star"
+        android:icon="@drawable/ic_menu_heart_60dp"
+        android:title="@string/add_to_favs_reader"
+        android:visible="true"
+        app:showAsAction="ifRoom" />
+</menu>

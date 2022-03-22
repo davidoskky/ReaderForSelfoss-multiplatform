@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    android:title="@string/title_activity_settings">
+
+    <Preference
+        android:fragment="bou.amine.apps.readerforselfossv2.android.settings.SettingsActivity$GeneralPreferenceFragment"
+        android:title="@string/pref_header_general"
+        android:icon="@drawable/ic_settings_black_24dp" />
+
+    <Preference
+        android:fragment="bou.amine.apps.readerforselfossv2.android.settings.SettingsActivity$ArticleViewerPreferenceFragment"
+        android:title="@string/pref_header_viewer"
+        android:icon="@drawable/ic_chrome_reader_mode_black_24dp" />
+
+    <Preference
+        android:fragment="bou.amine.apps.readerforselfossv2.android.settings.SettingsActivity$OfflinePreferenceFragment"
+        android:title="@string/pref_header_offline"
+        android:icon="@drawable/ic_signal_wifi_off_black_24dp" />
+
+    <Preference
+        android:fragment="bou.amine.apps.readerforselfossv2.android.settings.SettingsActivity$ThemePreferenceFragment"
+        android:title="@string/pref_header_theme"
+        android:icon="@drawable/ic_color_lens_black_24dp" />
+
+    <Preference
+        android:fragment="bou.amine.apps.readerforselfossv2.android.settings.SettingsActivity$LinksPreferenceFragment"
+        android:title="@string/pref_header_links"
+        android:icon="@drawable/ic_info_black_24dp" />
+
+    <Preference
+        android:fragment="bou.amine.apps.readerforselfossv2.android.settings.SettingsActivity$ExperimentalPreferenceFragment"
+        android:title="@string/pref_header_experimental"
+        android:icon="@drawable/ic_widgets_black_24dp" />
+
+</PreferenceScreen>

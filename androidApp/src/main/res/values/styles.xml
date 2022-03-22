@@ -1,9 +1,73 @@
 <resources>
 
-    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+    <style name="SplashTheme" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@drawable/background_splash</item>
+    </style>
+
+    <style name="NoBar" parent="Theme.MaterialComponents.Light.NoActionBar">
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
+        <item name="colorAccentDark">@color/colorAccentDark</item>
+        <item name="cardBackgroundColor">@color/white</item>
+        <item name="android:colorBackground">@color/grey_50</item>
+        <item name="colorSurface">@color/grey_50</item>
+        <item name="android:textColorPrimary">@color/grey_900</item>
+        <item name="android:textColorSecondary">@color/grey_400</item>
+        <item name="materialDrawerStyle">@style/App.materialDrawerStyle</item>
+        <item name="materialDrawerHeaderStyle">@style/Widget.MaterialDrawerHeaderStyle</item>
+        <item name="toolbarPopupTheme">@style/ThemeOverlay.AppCompat.Light</item>
+        <item name="preferenceTheme">@style/PreferenceStyle</item>
+    </style>
+
+    <style name="NoBarDark" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="colorAccentDark">@color/colorAccentDark</item>
+        <item name="cardBackgroundColor">@color/grey_800</item>
+        <item name="android:colorBackground">@color/darkBackground</item>
+        <item name="colorSurface">@color/darkBackground</item>
+        <item name="alertDialogTheme">@style/AlertDialogDark</item>
+        <item name="bnbBackgroundColor">@color/grey_900</item>
+        <item name="android:textColorPrimary">@color/white</item>
+        <item name="android:textColorSecondary">@color/grey_600</item>
+        <item name="materialDrawerStyle">@style/App.materialDrawerStyle</item>
+        <item name="materialDrawerHeaderStyle">@style/Widget.MaterialDrawerHeaderStyle</item>
+        <item name="toolbarPopupTheme">@style/ThemeOverlay.AppCompat.Dark</item>
+        <item name="preferenceTheme">@style/PreferenceStyle</item>
+    </style>
+
+    <!-- ToolBar -->
+    <style name="ToolBarStyle" parent="Theme.AppCompat">
+        <item name="android:textColorPrimary">@color/white</item>
+        <item name="android:textColorSecondary">@color/white</item>
+        <item name="actionMenuTextColor">@color/white</item>
+        <!--<item name="actionOverflowButtonStyle">@style/ActionButtonOverflowStyle</item>
+        <item name="drawerArrowStyle">@style/DrawerArrowStyle</item>-->
+    </style>
+
+    <!-- Material Drawer Theme -->
+    <style name="App.materialDrawerStyle" parent="@style/Widget.MaterialDrawerStyle">
+        <item name="materialDrawerPrimaryIcon">?android:textColorPrimary</item>
+        <item name="materialDrawerSecondaryIcon">?android:textColorPrimary</item>
+        <item name="materialDrawerSecondaryText">?android:textColorPrimary</item>
+    </style>
+      
+    <!-- Preference Theme -->
+    <style name="PreferenceStyle" parent="@style/PreferenceThemeOverlay">
+        <item name="android:tint">?android:textColorPrimary</item>
+    </style>
+
+    <!-- Spinner Theme -->
+    <style name="App.Spinner" parent="Widget.AppCompat.Light.DropDownItem.Spinner">
+        <item name="android:textColor">?android:textColorPrimary</item>
+    </style>
+
+    <!-- Alert dialog Theme -->
+
+    <style name="AlertDialogDark" parent="Theme.MaterialComponents.Dialog">
+        <item name="android:background">@color/darkBackground</item>
     </style>
 
 </resources>

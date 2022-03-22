@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <Preference android:title="@string/issue_tracker_link"
+                android:summary="@string/issue_tracker_summary"
+                android:key="trackerLink"
+                app:iconSpaceReserved="false"/>
+
+    <Preference android:title="@string/source_code"
+        android:key="sourceLink"
+        app:iconSpaceReserved="false"/>
+
+    <Preference android:title="@string/translation"
+        android:key="translation"
+        app:iconSpaceReserved="false"/>
+</PreferenceScreen>

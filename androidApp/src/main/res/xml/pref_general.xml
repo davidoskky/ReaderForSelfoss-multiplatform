@@ -1,0 +1,97 @@
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory
+        android:title="@string/pref_selfoss_category">
+
+    </PreferenceCategory>
+    <EditTextPreference
+        android:defaultValue="200"
+        android:inputType="number"
+        android:key="prefer_api_items_number"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:title="@string/pref_api_items_number_title"
+        app:iconSpaceReserved="false"/>
+
+    <EditTextPreference
+        android:defaultValue=""
+        android:hint="@string/add_source_hint_tags"
+        android:key="hidden_tags"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:title="@string/pref_hidden_tags"
+        app:iconSpaceReserved="false"/>
+
+    <SwitchPreference
+        android:defaultValue="false"
+        android:key="infinite_loading"
+        android:title="@string/pref_general_infinite_loading_title"
+        app:iconSpaceReserved="false"/>
+    <PreferenceCategory
+        android:title="@string/pref_general_category_links">
+
+    </PreferenceCategory>
+    <SwitchPreference
+        android:defaultValue="true"
+        android:key="prefer_internal_browser"
+        android:summaryOff="@string/pref_general_internal_browser_off"
+        android:summaryOn="@string/pref_general_internal_browser_on"
+        android:title="@string/pref_general_internal_browser_title"
+        app:iconSpaceReserved="false"/>
+    <SwitchPreference
+        android:defaultValue="true"
+        android:dependency="prefer_internal_browser"
+        android:key="prefer_article_viewer"
+        android:summaryOff="@string/prefer_article_viewer_off"
+        android:summaryOn="@string/prefer_article_viewer_on"
+        android:title="@string/prefer_article_viewer_title"
+        app:iconSpaceReserved="false"/>
+    <SwitchPreference
+        android:defaultValue="false"
+        android:dependency="prefer_article_viewer"
+        android:key="reader_static_bar"
+        android:summaryOff="@string/reader_static_bar_off"
+        android:summaryOn="@string/reader_static_bar_on"
+        android:title="@string/reader_static_bar_title"
+        app:iconSpaceReserved="false"/>
+
+    <PreferenceCategory
+        android:title="@string/pref_general_category_displaying">
+
+    </PreferenceCategory>
+    <SwitchPreference
+        android:defaultValue="false"
+        android:key="account_header_displaying"
+        android:summary="@string/display_header_drawer_summary"
+        android:title="@string/display_header_drawer_title"
+        app:iconSpaceReserved="false"/>
+    <SwitchPreference
+        android:defaultValue="false"
+        android:key="card_view_active"
+        android:summaryOff="@string/pref_switch_card_view_off"
+        android:summaryOn="@string/pref_switch_card_view_on"
+        android:title="@string/pref_switch_card_view_title"
+        app:iconSpaceReserved="false"/>
+    <SwitchPreference
+        android:defaultValue="false"
+        android:dependency="card_view_active"
+        android:key="full_height_cards"
+        android:summaryOff="@string/card_height_off"
+        android:summaryOn="@string/card_height_on"
+        android:title="@string/card_height_title"
+        app:iconSpaceReserved="false"/>
+    <SwitchPreference
+        android:defaultValue="true"
+        android:key="display_unread_count"
+        android:summaryOn="@string/switch_unread_count"
+        android:title="@string/switch_unread_count_title"
+        app:iconSpaceReserved="false"/>
+    <SwitchPreference
+        android:defaultValue="false"
+        android:dependency="display_unread_count"
+        android:key="display_other_count"
+        android:title="@string/display_all_counts_title"
+        app:iconSpaceReserved="false"/>
+
+</PreferenceScreen>
