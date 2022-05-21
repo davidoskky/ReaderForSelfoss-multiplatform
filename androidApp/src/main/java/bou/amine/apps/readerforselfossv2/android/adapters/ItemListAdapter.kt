@@ -2,31 +2,30 @@ package bou.amine.apps.readerforselfossv2.android.adapters
 
 import android.app.Activity
 import android.content.Context
-import androidx.recyclerview.widget.RecyclerView
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import bou.amine.apps.readerforselfossv2.android.api.selfoss.Item
-import bou.amine.apps.readerforselfossv2.android.api.selfoss.SelfossApi
+import androidx.recyclerview.widget.RecyclerView
 import bou.amine.apps.readerforselfossv2.android.databinding.ListItemBinding
+import bou.amine.apps.readerforselfossv2.android.model.*
 import bou.amine.apps.readerforselfossv2.android.persistence.database.AppDatabase
 import bou.amine.apps.readerforselfossv2.android.themes.AppColors
-import bou.amine.apps.readerforselfossv2.android.utils.Config
-import bou.amine.apps.readerforselfossv2.android.utils.LinkOnTouchListener
-import bou.amine.apps.readerforselfossv2.android.utils.buildCustomTabsIntent
+import bou.amine.apps.readerforselfossv2.android.utils.*
 import bou.amine.apps.readerforselfossv2.android.utils.customtabs.CustomTabActivityHelper
 import bou.amine.apps.readerforselfossv2.android.utils.glide.bitmapCenterCrop
 import bou.amine.apps.readerforselfossv2.android.utils.glide.circularBitmapDrawable
-import bou.amine.apps.readerforselfossv2.android.utils.openItemUrl
-import bou.amine.apps.readerforselfossv2.android.utils.sourceAndDateText
-import bou.amine.apps.readerforselfossv2.android.utils.toTextDrawableString
+import bou.amine.apps.readerforselfossv2.rest.SelfossApi
+import bou.amine.apps.readerforselfossv2.rest.SelfossModel
+import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
+import bou.amine.apps.readerforselfossv2.service.SearchService
+import bou.amine.apps.readerforselfossv2.utils.DateUtils
 import com.amulyakhare.textdrawable.TextDrawable
 import com.amulyakhare.textdrawable.util.ColorGenerator
-import kotlin.collections.ArrayList
 
 class ItemListAdapter(
     override val app: Activity,
-    override var items: ArrayList<Item>,
+    override var items: ArrayList<SelfossModel.Item>,
     override val api: SelfossApi,
+    override val apiDetailsService: ApiDetailsService,
     override val db: AppDatabase,
     private val helper: CustomTabActivityHelper,
     private val internalBrowser: Boolean,
@@ -34,7 +33,8 @@ class ItemListAdapter(
     override val userIdentifier: String,
     override val appColors: AppColors,
     override val config: Config,
-    override val updateItems: (ArrayList<Item>) -> Unit
+    override val searchService: SearchService,
+    override val updateItems: (ArrayList<SelfossModel.Item>) -> Unit
 ) : ItemsAdapter<ItemListAdapter.ViewHolder>() {
     private val generator: ColorGenerator = ColorGenerator.MATERIAL
     private val c: Context = app.baseContext
@@ -54,11 +54,11 @@ class ItemListAdapter(
 
             binding.title.setLinkTextColor(appColors.colorAccent)
 
-            binding.sourceTitleAndDate.text = itm.sourceAndDateText()
+            binding.sourceTitleAndDate.text = itm.sourceAndDateText(DateUtils(apiDetailsService))
 
-            if (itm.getThumbnail(c).isEmpty()) {
+            if (itm.getThumbnail(apiDetailsService.getBaseUrl()).isEmpty()) {
 
-                if (itm.getIcon(c).isEmpty()) {
+                if (itm.getIcon(apiDetailsService.getBaseUrl()).isEmpty()) {
                     val color = generator.getColor(itm.getSourceTitle())
 
                     val drawable =
@@ -69,10 +69,10 @@ class ItemListAdapter(
 
                     binding.itemImage.setImageDrawable(drawable)
                 } else {
-                    c.circularBitmapDrawable(config, itm.getIcon(c), binding.itemImage)
+                    c.circularBitmapDrawable(config, itm.getIcon(apiDetailsService.getBaseUrl()), binding.itemImage)
                 }
             } else {
-                c.bitmapCenterCrop(config, itm.getThumbnail(c), binding.itemImage)
+                c.bitmapCenterCrop(config, itm.getThumbnail(apiDetailsService.getBaseUrl()), binding.itemImage)
             }
         }
     }
@@ -97,7 +97,8 @@ class ItemListAdapter(
                     customTabsIntent,
                     internalBrowser,
                     articleViewer,
-                    app
+                    app,
+                    searchService
                 )
             }
         }

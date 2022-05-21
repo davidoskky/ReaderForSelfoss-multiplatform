@@ -10,39 +10,51 @@ import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Bundle
-import androidx.preference.PreferenceManager
 import android.view.*
 import android.webkit.*
 import android.widget.Toast
-import com.google.android.material.floatingactionbutton.FloatingActionButton
-import androidx.fragment.app.Fragment
-import androidx.core.widget.NestedScrollView
 import androidx.appcompat.app.AlertDialog
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.content.res.ResourcesCompat
+import androidx.core.widget.NestedScrollView
+import androidx.fragment.app.Fragment
+import androidx.preference.PreferenceManager
 import androidx.room.Room
 import bou.amine.apps.readerforselfossv2.android.ImageActivity
 import bou.amine.apps.readerforselfossv2.android.R
 import bou.amine.apps.readerforselfossv2.android.api.mercury.MercuryApi
 import bou.amine.apps.readerforselfossv2.android.api.mercury.ParsedContent
-import bou.amine.apps.readerforselfossv2.android.api.selfoss.Item
-import bou.amine.apps.readerforselfossv2.android.api.selfoss.SelfossApi
 import bou.amine.apps.readerforselfossv2.android.databinding.FragmentArticleBinding
+import bou.amine.apps.readerforselfossv2.android.model.*
+import bou.amine.apps.readerforselfossv2.android.persistence.AndroidDeviceDatabase
+import bou.amine.apps.readerforselfossv2.android.persistence.AndroidDeviceDatabaseService
 import bou.amine.apps.readerforselfossv2.android.persistence.database.AppDatabase
+import bou.amine.apps.readerforselfossv2.android.persistence.entities.AndroidItemEntity
 import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_1_2
 import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_2_3
 import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_3_4
+import bou.amine.apps.readerforselfossv2.android.service.AndroidApiDetailsService
 import bou.amine.apps.readerforselfossv2.android.themes.AppColors
 import bou.amine.apps.readerforselfossv2.android.utils.*
 import bou.amine.apps.readerforselfossv2.android.utils.customtabs.CustomTabActivityHelper
-import bou.amine.apps.readerforselfossv2.android.utils.glide.loadMaybeBasicAuth
 import bou.amine.apps.readerforselfossv2.android.utils.glide.getBitmapInputStream
-import bou.amine.apps.readerforselfossv2.android.utils.network.isNetworkAccessible
-import bou.amine.apps.readerforselfossv2.android.utils.*
+import bou.amine.apps.readerforselfossv2.android.utils.glide.loadMaybeBasicAuth
+import bou.amine.apps.readerforselfossv2.android.utils.network.isNetworkAvailable
+import bou.amine.apps.readerforselfossv2.rest.SelfossApi
+import bou.amine.apps.readerforselfossv2.rest.SelfossModel
+import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
+import bou.amine.apps.readerforselfossv2.service.SearchService
+import bou.amine.apps.readerforselfossv2.service.SelfossService
+import bou.amine.apps.readerforselfossv2.utils.DateUtils
+import bou.amine.apps.readerforselfossv2.utils.isEmptyOrNullOrNullString
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.request.RequestOptions
 import com.github.rubensousa.floatingtoolbar.FloatingToolbar
+import com.google.android.material.floatingactionbutton.FloatingActionButton
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -50,11 +62,13 @@ import java.net.MalformedURLException
 import java.net.URL
 import java.util.*
 import java.util.concurrent.ExecutionException
-import kotlin.collections.ArrayList
 
 class ArticleFragment : Fragment() {
+    private lateinit var dbService: AndroidDeviceDatabaseService
+    private lateinit var apiDetailsService: ApiDetailsService
+    private lateinit var service: SelfossService<AndroidItemEntity>
     private var fontSize: Int = 16
-    private lateinit var item: Item
+    private lateinit var item: SelfossModel.Item
     private var mCustomTabActivityHelper: CustomTabActivityHelper? = null
     private lateinit var url: String
     private lateinit var contentText: String
@@ -91,6 +105,12 @@ class ArticleFragment : Fragment() {
 
         super.onCreate(savedInstanceState)
 
+        apiDetailsService = AndroidApiDetailsService(requireContext())
+
+        dbService = AndroidDeviceDatabaseService(AndroidDeviceDatabase(requireContext()), SearchService(DateUtils(apiDetailsService)))
+
+        service = SelfossService(SelfossApi(apiDetailsService), dbService, SearchService(DateUtils(apiDetailsService)))
+
         item = requireArguments().getParcelable(ARG_ITEMS)!!
 
         db = Room.databaseBuilder(
@@ -110,8 +130,8 @@ class ArticleFragment : Fragment() {
             url = item.getLinkDecoded()
             contentText = item.content
             contentTitle = item.getTitleDecoded()
-            contentImage = item.getThumbnail(requireActivity())
-            contentSource = item.sourceAndDateText()
+            contentImage = item.getThumbnail(apiDetailsService.getBaseUrl())
+            contentSource = item.sourceAndDateText(DateUtils(apiDetailsService))
             allImages = item.getImages()
 
             prefs = PreferenceManager.getDefaultSharedPreferences(activity)
@@ -136,10 +156,11 @@ class ArticleFragment : Fragment() {
             val settings = requireActivity().getSharedPreferences(Config.settingsName, Context.MODE_PRIVATE)
 
             val api = SelfossApi(
-                requireContext(),
-                requireActivity(),
-                settings.getBoolean("isSelfSignedCert", false),
-                prefs.getString("api_timeout", "-1")!!.toLong()
+//                requireContext(),
+//                requireActivity(),
+//                settings.getBoolean("isSelfSignedCert", false),
+//                prefs.getString("api_timeout", "-1")!!.toLong()
+                apiDetailsService
             )
 
             fab = binding.fab
@@ -166,27 +187,33 @@ class ArticleFragment : Fragment() {
                             R.id.share_action -> requireActivity().shareLink(url, contentTitle)
                             R.id.open_action -> requireActivity().openInBrowserAsNewTask(this@ArticleFragment.item)
                             R.id.unread_action -> if (context != null) {
-                                if (this@ArticleFragment.item.unread) {
-                                    SharedItems.readItem(
-                                        context!!,
-                                        api,
-                                        db,
-                                            this@ArticleFragment.item
-                                    )
-                                    this@ArticleFragment.item.unread = false
+                                if (this@ArticleFragment.item.unread == 1) {
+                                    CoroutineScope(Dispatchers.IO).launch {
+                                        // TODO:
+//                                        dbService.readItem(
+//                                            context!!,
+//                                            api,
+//                                            db,
+//                                            this@ArticleFragment.item
+//                                        )
+                                    }
+                                    this@ArticleFragment.item.unread = 0
                                     Toast.makeText(
                                         context,
                                         R.string.marked_as_read,
                                         Toast.LENGTH_LONG
                                     ).show()
                                 } else {
-                                    SharedItems.unreadItem(
-                                        context!!,
-                                        api,
-                                        db,
-                                            this@ArticleFragment.item
-                                    )
-                                    this@ArticleFragment.item.unread = true
+                                    CoroutineScope(Dispatchers.IO).launch {
+                                        // TODO
+//                                        .unreadItem(
+//                                            context!!,
+//                                            api,
+//                                            db,
+//                                            this@ArticleFragment.item
+//                                        )
+                                    }
+                                    this@ArticleFragment.item.unread = 1
                                     Toast.makeText(
                                         context,
                                         R.string.marked_as_unread,
@@ -284,7 +311,7 @@ class ArticleFragment : Fragment() {
     }
 
     private fun getContentFromMercury(customTabsIntent: CustomTabsIntent) {
-        if ((context != null && requireContext().isNetworkAccessible(null)) || context == null) {
+        if ((context != null && requireContext().isNetworkAvailable(null)) || context == null) {
             binding.progressBar.visibility = View.VISIBLE
             val parser = MercuryApi()
 
@@ -535,11 +562,11 @@ class ArticleFragment : Fragment() {
         private const val ARG_ITEMS = "items"
 
         fun newInstance(
-                item: Item
+                item: SelfossModel.Item
         ): ArticleFragment {
             val fragment = ArticleFragment()
             val args = Bundle()
-            args.putParcelable(ARG_ITEMS, item)
+            args.putParcelable(ARG_ITEMS, item.toParcelable())
             fragment.arguments = args
             return fragment
         }

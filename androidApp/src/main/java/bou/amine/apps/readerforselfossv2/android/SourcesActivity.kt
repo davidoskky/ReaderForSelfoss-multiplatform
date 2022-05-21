@@ -9,17 +9,23 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import android.widget.Toast
 import bou.amine.apps.readerforselfossv2.android.adapters.SourcesListAdapter
-import bou.amine.apps.readerforselfossv2.android.api.selfoss.SelfossApi
-import bou.amine.apps.readerforselfossv2.android.api.selfoss.Source
 import bou.amine.apps.readerforselfossv2.android.databinding.ActivitySourcesBinding
+import bou.amine.apps.readerforselfossv2.android.service.AndroidApiDetailsService
 import bou.amine.apps.readerforselfossv2.android.themes.AppColors
 import bou.amine.apps.readerforselfossv2.android.themes.Toppings
 import bou.amine.apps.readerforselfossv2.android.utils.Config
-import bou.amine.apps.readerforselfossv2.android.utils.network.isNetworkAccessible
+import bou.amine.apps.readerforselfossv2.android.utils.network.isNetworkAvailable
+import bou.amine.apps.readerforselfossv2.rest.SelfossApi
+import bou.amine.apps.readerforselfossv2.rest.SelfossModel
+import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
 import com.ftinc.scoop.Scoop
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.util.ArrayList
 
 class SourcesActivity : AppCompatActivity() {
 
@@ -60,27 +66,27 @@ class SourcesActivity : AppCompatActivity() {
             getSharedPreferences(Config.settingsName, Context.MODE_PRIVATE)
         val prefs = PreferenceManager.getDefaultSharedPreferences(this)
 
+        val apiDetailsService = AndroidApiDetailsService(this@SourcesActivity)
         val api = SelfossApi(
-            this,
-            this@SourcesActivity,
-            settings.getBoolean("isSelfSignedCert", false),
-            prefs.getString("api_timeout", "-1")!!.toLong()
+//            this,
+//            this@SourcesActivity,
+//            settings.getBoolean("isSelfSignedCert", false),
+//            prefs.getString("api_timeout", "-1")!!.toLong()
+            apiDetailsService
         )
-        var items: ArrayList<Source> = ArrayList()
+        var items: ArrayList<SelfossModel.Source>
 
         binding.recyclerView.setHasFixedSize(true)
         binding.recyclerView.layoutManager = mLayoutManager
 
-        if (this@SourcesActivity.isNetworkAccessible(binding.recyclerView)) {
-            api.sources.enqueue(object : Callback<List<Source>> {
-                override fun onResponse(
-                    call: Call<List<Source>>,
-                    response: Response<List<Source>>
-                ) {
-                    if (response.body() != null && response.body()!!.isNotEmpty()) {
-                        items = response.body() as ArrayList<Source>
-                    }
-                    val mAdapter = SourcesListAdapter(this@SourcesActivity, items, api)
+        if (this@SourcesActivity.isNetworkAvailable(binding.recyclerView)) {
+            CoroutineScope(Dispatchers.IO).launch {
+                val response = api.sources()
+                if (response != null) {
+                    items = response
+                    val mAdapter = SourcesListAdapter(this@SourcesActivity, items, api,
+                        apiDetailsService
+                    )
                     binding.recyclerView.adapter = mAdapter
                     mAdapter.notifyDataSetChanged()
                     if (items.isEmpty()) {
@@ -90,16 +96,14 @@ class SourcesActivity : AppCompatActivity() {
                             Toast.LENGTH_SHORT
                         ).show()
                     }
-                }
-
-                override fun onFailure(call: Call<List<Source>>, t: Throwable) {
+                } else {
                     Toast.makeText(
                         this@SourcesActivity,
                         R.string.cant_get_sources,
                         Toast.LENGTH_SHORT
                     ).show()
                 }
-            })
+            }
         }
 
         binding.fab.setOnClickListener {

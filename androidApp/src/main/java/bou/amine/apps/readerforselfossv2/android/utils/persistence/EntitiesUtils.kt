@@ -1,73 +1,72 @@
 package bou.amine.apps.readerforselfossv2.android.utils.persistence
 
-import bou.amine.apps.readerforselfossv2.android.api.selfoss.Item
-import bou.amine.apps.readerforselfossv2.android.api.selfoss.SelfossTagType
-import bou.amine.apps.readerforselfossv2.android.api.selfoss.Source
-import bou.amine.apps.readerforselfossv2.android.api.selfoss.Tag
-import bou.amine.apps.readerforselfossv2.android.persistence.entities.ItemEntity
+import bou.amine.apps.readerforselfossv2.android.model.getSourceTitle
+import bou.amine.apps.readerforselfossv2.android.model.getTitleDecoded
+import bou.amine.apps.readerforselfossv2.android.persistence.entities.AndroidItemEntity
 import bou.amine.apps.readerforselfossv2.android.persistence.entities.SourceEntity
 import bou.amine.apps.readerforselfossv2.android.persistence.entities.TagEntity
+import bou.amine.apps.readerforselfossv2.rest.SelfossModel
 
-fun TagEntity.toView(): Tag =
-        Tag(
+fun TagEntity.toView(): SelfossModel.Tag =
+        SelfossModel.Tag(
             this.tag,
             this.color,
             this.unread
         )
 
-fun SourceEntity.toView(): Source =
-        Source(
+fun SourceEntity.toView(): SelfossModel.Source =
+        SelfossModel.Source(
             this.id,
             this.title,
-            SelfossTagType(this.tags),
+            this.tags.split(","),
             this.spout,
             this.error,
             this.icon
         )
 
-fun Source.toEntity(): SourceEntity =
+fun SelfossModel.Source.toEntity(): SourceEntity =
         SourceEntity(
             this.id,
             this.getTitleDecoded(),
-            this.tags.tags,
+            this.tags.joinToString(","),
             this.spout,
             this.error,
-            this.icon.orEmpty()
+            this.icon
         )
 
-fun Tag.toEntity(): TagEntity =
+fun SelfossModel.Tag.toEntity(): TagEntity =
         TagEntity(
             this.tag,
             this.color,
             this.unread
         )
 
-fun ItemEntity.toView(): Item =
-        Item(
+fun AndroidItemEntity.toView(): SelfossModel.Item =
+        SelfossModel.Item(
             this.id,
             this.datetime,
             this.title,
             this.content,
-            this.unread,
-            this.starred,
+            if (this.unread) 1 else 0,
+            if (this.starred) 1 else 0,
             this.thumbnail,
             this.icon,
             this.link,
             this.sourcetitle,
-            SelfossTagType(this.tags)
+            this.tags
         )
 
-fun Item.toEntity(): ItemEntity =
-    ItemEntity(
+fun SelfossModel.Item.toEntity(): AndroidItemEntity =
+    AndroidItemEntity(
         this.id,
         this.datetime,
         this.getTitleDecoded(),
         this.content,
-        this.unread,
-        this.starred,
+        this.unread == 1,
+        this.starred == 1,
         this.thumbnail,
         this.icon,
         this.link,
         this.getSourceTitle(),
-        this.tags.tags
+        this.tags
     )

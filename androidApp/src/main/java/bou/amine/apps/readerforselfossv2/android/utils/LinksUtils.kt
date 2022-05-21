@@ -18,8 +18,11 @@ import android.widget.TextView
 import android.widget.Toast
 import bou.amine.apps.readerforselfossv2.android.R
 import bou.amine.apps.readerforselfossv2.android.ReaderActivity
-import bou.amine.apps.readerforselfossv2.android.api.selfoss.Item
+import bou.amine.apps.readerforselfossv2.android.model.getLinkDecoded
 import bou.amine.apps.readerforselfossv2.android.utils.customtabs.CustomTabActivityHelper
+import bou.amine.apps.readerforselfossv2.rest.SelfossModel
+import bou.amine.apps.readerforselfossv2.service.SearchService
+import bou.amine.apps.readerforselfossv2.utils.toStringUriWithHttp
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
 fun Context.buildCustomTabsIntent(): CustomTabsIntent {
@@ -71,16 +74,17 @@ fun Context.buildCustomTabsIntent(): CustomTabsIntent {
 }
 
 fun Context.openItemUrlInternally(
-    allItems: ArrayList<Item>,
+    allItems: ArrayList<SelfossModel.Item>,
     currentItem: Int,
     linkDecoded: String,
     customTabsIntent: CustomTabsIntent,
     articleViewer: Boolean,
-    app: Activity
+    app: Activity,
+    searchService: SearchService
 ) {
     if (articleViewer) {
         ReaderActivity.allItems = allItems
-        SharedItems.position = currentItem
+        searchService.position = currentItem
         val intent = Intent(this, ReaderActivity::class.java)
         intent.putExtra("currentItem", currentItem)
         app.startActivity(intent)
@@ -113,13 +117,14 @@ fun Context.openItemUrlInternalBrowser(
 }
 
 fun Context.openItemUrl(
-    allItems: ArrayList<Item>,
+    allItems: ArrayList<SelfossModel.Item>,
     currentItem: Int,
     linkDecoded: String,
     customTabsIntent: CustomTabsIntent,
     internalBrowser: Boolean,
     articleViewer: Boolean,
-    app: Activity
+    app: Activity,
+    searchService: SearchService
 ) {
 
     if (!linkDecoded.isUrlValid()) {
@@ -138,7 +143,8 @@ fun Context.openItemUrl(
                 linkDecoded,
                 customTabsIntent,
                 articleViewer,
-                app
+                app,
+                searchService
             )
         } else {
             this.openItemUrlInternalBrowser(
@@ -174,7 +180,7 @@ fun String.isBaseUrlValid(ctx: Context): Boolean {
     return Patterns.WEB_URL.matcher(this).matches() && existsAndEndsWithSlash
 }
 
-fun Context.openInBrowserAsNewTask(i: Item) {
+fun Context.openInBrowserAsNewTask(i: SelfossModel.Item) {
     val intent = Intent(Intent.ACTION_VIEW)
     intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
     intent.data = Uri.parse(i.getLinkDecoded().toStringUriWithHttp())

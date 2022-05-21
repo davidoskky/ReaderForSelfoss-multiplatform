@@ -8,19 +8,26 @@ import android.os.Bundle
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import android.text.TextUtils
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.TextView
 import androidx.preference.PreferenceManager
-import bou.amine.apps.readerforselfossv2.android.api.selfoss.SelfossApi
-import bou.amine.apps.readerforselfossv2.android.api.selfoss.SuccessResponse
+import androidx.work.Logger
 import bou.amine.apps.readerforselfossv2.android.databinding.ActivityLoginBinding
+import bou.amine.apps.readerforselfossv2.android.service.AndroidApiDetailsService
 import bou.amine.apps.readerforselfossv2.android.themes.AppColors
+import bou.amine.apps.readerforselfossv2.android.utils.Config
 import bou.amine.apps.readerforselfossv2.android.utils.isBaseUrlValid
-import bou.amine.apps.readerforselfossv2.android.utils.network.isNetworkAccessible
+import bou.amine.apps.readerforselfossv2.android.utils.network.isNetworkAvailable
+import bou.amine.apps.readerforselfossv2.rest.SelfossApi
+import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
 import com.mikepenz.aboutlibraries.LibsBuilder
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -120,6 +127,21 @@ class LoginActivity : AppCompatActivity() {
         finish()
     }
 
+    private fun preferenceError(t: Throwable) {
+        editor.remove("url")
+        editor.remove("login")
+        editor.remove("httpUserName")
+        editor.remove("password")
+        editor.remove("httpPassword")
+        editor.apply()
+        binding.urlView.error = getString(R.string.wrong_infos)
+        binding.loginView.error = getString(R.string.wrong_infos)
+        binding.passwordView.error = getString(R.string.wrong_infos)
+        binding.httpLoginView.error = getString(R.string.wrong_infos)
+        binding.httpPasswordView.error = getString(R.string.wrong_infos)
+        showProgress(false)
+    }
+
     private fun attemptLogin() {
 
         // Reset errors.
@@ -198,45 +220,28 @@ class LoginActivity : AppCompatActivity() {
             editor.putBoolean("isSelfSignedCert", isWithSelfSignedCert)
             editor.apply()
 
+            val apiDetailsService = AndroidApiDetailsService(this@LoginActivity)
             val api = SelfossApi(
-                this,
-                this@LoginActivity,
-                isWithSelfSignedCert,
-                -1L
+//                this,
+//                this@LoginActivity,
+//                isWithSelfSignedCert,
+//                -1L
+                apiDetailsService
             )
 
-            if (this@LoginActivity.isNetworkAccessible(this@LoginActivity.findViewById(R.id.loginForm))) {
-                api.login().enqueue(object : Callback<SuccessResponse> {
-                    private fun preferenceError(t: Throwable) {
-                        editor.remove("url")
-                        editor.remove("login")
-                        editor.remove("httpUserName")
-                        editor.remove("password")
-                        editor.remove("httpPassword")
-                        editor.apply()
-                        binding.urlView.error = getString(R.string.wrong_infos)
-                        binding.loginView.error = getString(R.string.wrong_infos)
-                        binding.passwordView.error = getString(R.string.wrong_infos)
-                        binding.httpLoginView.error = getString(R.string.wrong_infos)
-                        binding.httpPasswordView.error = getString(R.string.wrong_infos)
-                        showProgress(false)
-                    }
-
-                    override fun onResponse(
-                        call: Call<SuccessResponse>,
-                        response: Response<SuccessResponse>
-                    ) {
-                        if (response.body() != null && response.body()!!.isSuccess) {
+            if (this@LoginActivity.isNetworkAvailable(this@LoginActivity.findViewById(R.id.loginForm))) {
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        val result = api.login()
+                        if (result != null && result.isSuccess) {
                             goToMain()
                         } else {
-                            preferenceError(Exception("No response body..."))
+                            preferenceError(Exception("Not success"))
                         }
+                    } catch (cause: Throwable) {
+                        Log.e("1", "LOL")
                     }
-
-                    override fun onFailure(call: Call<SuccessResponse>, t: Throwable) {
-                        preferenceError(t)
-                    }
-                })
+                }
             } else {
                 showProgress(false)
             }

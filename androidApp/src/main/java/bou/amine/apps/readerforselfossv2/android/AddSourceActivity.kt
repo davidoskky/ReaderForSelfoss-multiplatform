@@ -14,9 +14,6 @@ import android.widget.ProgressBar
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
-import bou.amine.apps.readerforselfossv2.android.api.selfoss.SelfossApi
-import bou.amine.apps.readerforselfossv2.android.api.selfoss.Spout
-import bou.amine.apps.readerforselfossv2.android.api.selfoss.SuccessResponse
 import bou.amine.apps.readerforselfossv2.android.themes.AppColors
 import bou.amine.apps.readerforselfossv2.android.themes.Toppings
 import bou.amine.apps.readerforselfossv2.android.utils.Config
@@ -26,10 +23,19 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import bou.amine.apps.readerforselfossv2.android.databinding.ActivityAddSourceBinding
+import bou.amine.apps.readerforselfossv2.android.service.AndroidApiDetailsService
+
+import bou.amine.apps.readerforselfossv2.rest.SelfossApi
+import bou.amine.apps.readerforselfossv2.rest.SelfossModel
+import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 
 class AddSourceActivity : AppCompatActivity() {
 
+    private lateinit var apiDetailsService: ApiDetailsService
     private var mSpoutsValue: String? = null
     private lateinit var api: SelfossApi
 
@@ -74,11 +80,13 @@ class AddSourceActivity : AppCompatActivity() {
             val prefs = PreferenceManager.getDefaultSharedPreferences(this)
             val settings =
                 getSharedPreferences(Config.settingsName, Context.MODE_PRIVATE)
+            apiDetailsService = AndroidApiDetailsService(this@AddSourceActivity)
             api = SelfossApi(
-                this,
-                this@AddSourceActivity,
-                settings.getBoolean("isSelfSignedCert", false),
-                prefs.getString("api_timeout", "-1")!!.toLong()
+//                this,
+//                this@AddSourceActivity,
+//                settings.getBoolean("isSelfSignedCert", false),
+//                prefs.getString("api_timeout", "-1")!!.toLong()
+                apiDetailsService
             )
         } catch (e: IllegalArgumentException) {
             mustLoginToAddSource()
@@ -124,41 +132,28 @@ class AddSourceActivity : AppCompatActivity() {
             }
         }
 
-        var items: Map<String, Spout>
-        api!!.spouts().enqueue(object : Callback<Map<String, Spout>> {
-            override fun onResponse(
-                call: Call<Map<String, Spout>>,
-                response: Response<Map<String, Spout>>
-            ) {
-                if (response.body() != null) {
-                    items = response.body()!!
 
-                    val itemsStrings = items.map { it.value.name }
-                    for ((key, value) in items) {
-                        spoutsKV[value.name] = key
-                    }
+        CoroutineScope(Dispatchers.IO).launch {
+            var items = api!!.spouts()
+            if (items != null) {
 
-                    mProgress.visibility = View.GONE
-                    formContainer.visibility = View.VISIBLE
-
-                    val spinnerArrayAdapter =
-                        ArrayAdapter(
-                            this@AddSourceActivity,
-                            android.R.layout.simple_spinner_item,
-                            itemsStrings
-                        )
-                    spinnerArrayAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-                    spoutsSpinner.adapter = spinnerArrayAdapter
-                } else {
-                    handleProblemWithSpouts()
+                val itemsStrings = items.map { it.value.name }
+                for ((key, value) in items) {
+                    spoutsKV[value.name] = key
                 }
-            }
 
-            override fun onFailure(call: Call<Map<String, Spout>>, t: Throwable) {
-                handleProblemWithSpouts()
-            }
+                mProgress.visibility = View.GONE
+                formContainer.visibility = View.VISIBLE
 
-            private fun handleProblemWithSpouts() {
+                val spinnerArrayAdapter =
+                    ArrayAdapter(
+                        this@AddSourceActivity,
+                        android.R.layout.simple_spinner_item,
+                        itemsStrings
+                    )
+                spinnerArrayAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+                spoutsSpinner.adapter = spinnerArrayAdapter
+            } else {
                 Toast.makeText(
                     this@AddSourceActivity,
                     R.string.cant_get_spouts,
@@ -166,7 +161,7 @@ class AddSourceActivity : AppCompatActivity() {
                 ).show()
                 mProgress.visibility = View.GONE
             }
-        })
+        }
     }
 
     private fun maybeGetDetailsFromIntentSharing(
@@ -196,70 +191,26 @@ class AddSourceActivity : AppCompatActivity() {
             sourceDetailsUnavailable -> {
                 Toast.makeText(this, R.string.form_not_complete, Toast.LENGTH_SHORT).show()
             }
-            PreferenceManager.getDefaultSharedPreferences(this).getInt("apiVersionMajor", 0) > 1 -> {
-                val tagList = tags.text.toString().split(",").map { it.trim() }
-                api.createSourceApi2(
-                    title,
-                    url,
-                    mSpoutsValue!!,
-                    tagList,
-                    ""
-                ).enqueue(object : Callback<SuccessResponse> {
-                    override fun onResponse(
-                        call: Call<SuccessResponse>,
-                        response: Response<SuccessResponse>
-                    ) {
-                        if (response.body() != null && response.body()!!.isSuccess) {
-                            finish()
-                        } else {
-                            Toast.makeText(
-                                this@AddSourceActivity,
-                                R.string.cant_create_source,
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                    }
-
-                    override fun onFailure(call: Call<SuccessResponse>, t: Throwable) {
-                        Toast.makeText(
-                            this@AddSourceActivity,
-                            R.string.cant_create_source,
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                })
-            }
             else -> {
-                api.createSource(
-                    title,
-                    url,
-                    mSpoutsValue!!,
-                    tags.text.toString(),
-                    ""
-                ).enqueue(object : Callback<SuccessResponse> {
-                    override fun onResponse(
-                        call: Call<SuccessResponse>,
-                        response: Response<SuccessResponse>
-                    ) {
-                        if (response.body() != null && response.body()!!.isSuccess) {
-                            finish()
-                        } else {
-                            Toast.makeText(
-                                this@AddSourceActivity,
-                                R.string.cant_create_source,
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                    }
-
-                    override fun onFailure(call: Call<SuccessResponse>, t: Throwable) {
+                CoroutineScope(Dispatchers.IO).launch {
+                    val response: SelfossModel.SuccessResponse? = api.createSourceForVersion(
+                            title,
+                            url,
+                            mSpoutsValue!!,
+                            tags.text.toString(),
+                            "",
+                            PreferenceManager.getDefaultSharedPreferences(this@AddSourceActivity).getInt("apiVersionMajor", 0)
+                        )
+                    if (response != null) {
+                        finish()
+                    } else {
                         Toast.makeText(
                             this@AddSourceActivity,
                             R.string.cant_create_source,
                             Toast.LENGTH_SHORT
                         ).show()
                     }
-                })
+                }
             }
         }
     }

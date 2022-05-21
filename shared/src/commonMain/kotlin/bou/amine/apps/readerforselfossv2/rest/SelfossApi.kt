@@ -1,188 +1,229 @@
 package bou.amine.apps.readerforselfossv2.rest
 
-import android.content.Context
-import android.os.Parcel
-import android.os.Parcelable
-import android.text.Html
-import bou.amine.apps.readerforselfossv2.rest.SelfossModel.SelfossModel.constructUrl
+import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
 import io.ktor.client.*
-import io.ktor.client.features.*
-import io.ktor.client.features.json.*
-import io.ktor.client.features.json.serializer.*
+import io.ktor.client.call.*
+import io.ktor.client.engine.*
+import io.ktor.client.engine.ProxyBuilder.http
+import io.ktor.client.plugins.auth.*
+import io.ktor.client.plugins.auth.providers.*
 import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
 import io.ktor.http.*
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
-import kotlinx.serialization.Serializable
-import kotlin.jvm.JvmField
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.plugins.logging.*
+import io.ktor.serialization.kotlinx.json.*
+import kotlinx.serialization.json.Json
 
-class SelfossApi {
-    /**
-     * TODO:
-     * Self signed certs
-     * Timeout + 408
-     * Auth digest/basic
-     * Loging
-     */
+class SelfossApi(private val apiDetailsService: ApiDetailsService) {
 
-    val baseUrl = "http://10.0.2.2:8888"
-    val userName = ""
-    val password = ""
-    val client = HttpClient() {
-        install(JsonFeature) {
-            serializer = KotlinxSerializer(kotlinx.serialization.json.Json {
+    private val client = HttpClient() {
+        install(ContentNegotiation) {
+            json(Json {
                 prettyPrint = true
                 isLenient = true
                 ignoreUnknownKeys = true
             })
         }
+        install(Logging) {
+            logger = object: Logger {
+                override fun log(message: String) {
+                    apiDetailsService.logApiCalls(message)
+                }
+            }
+            level = LogLevel.ALL
+        }
+        /* TODO: Auth as basic
+        if (apiDetailsService.getUserName().isNotEmpty() && apiDetailsService.getPassword().isNotEmpty()) {
 
+            install(Auth) {
+                basic {
+                    credentials {
+                        BasicAuthCredentials(username = apiDetailsService.getUserName(), password = apiDetailsService.getPassword())
+                    }
+                    sendWithoutRequest {
+                        true
+                    }
+                }
+            }
+        }*/
+        expectSuccess = false
     }
 
     private fun url(path: String) =
-        "$baseUrl$path"
+        "${apiDetailsService.getBaseUrl()}$path"
 
 
-    suspend fun login() =
-        client.get<String>(url("/login"))// Todo: params
+    suspend fun login(): SelfossModel.SuccessResponse? =
+        client.get(url("/login")) {
+            parameter("username", apiDetailsService.getUserName())
+            parameter("password", apiDetailsService.getPassword())
+        }.body()
 
-    suspend fun getItems(type: String,
-                         items: Int,
-                         offset: Int,
-                         tag: String? = "",
-                         source: Long? = null,
-                         search: String? = "",
-                         updatedSince: String? = ""): List<SelfossModel.Item> =
+    suspend fun getItems(
+        type: String,
+        items: Int,
+        offset: Int,
+        tag: String? = "",
+        source: Long? = null,
+        search: String? = "",
+        updatedSince: String? = ""
+    ): List<SelfossModel.Item>? =
         client.get(url("/items")) {
-            parameter("username", userName)
-            parameter("password", password)
-            parameter("type", type)
-            parameter("tag", tag)
-            parameter("source", source)
-            parameter("search", search)
-            parameter("updatedsince", updatedSince)
-            parameter("items", items)
-            parameter("offset", offset)
-        }
+                parameter("username", apiDetailsService.getUserName())
+                parameter("password", apiDetailsService.getPassword())
+                parameter("type", type)
+                parameter("tag", tag)
+                parameter("source", source)
+                parameter("search", search)
+                parameter("updatedsince", updatedSince)
+                parameter("items", items)
+                parameter("offset", offset)
+            }.body()
 
-    suspend fun stats(): SelfossModel.Stats =
+    suspend fun stats(): SelfossModel.Stats? =
         client.get(url("/stats")) {
-            parameter("username", userName)
-            parameter("password", password)
-        }
+                parameter("username", apiDetailsService.getUserName())
+                parameter("password", apiDetailsService.getPassword())
+            }.body()
 
-    suspend fun tags(): List<SelfossModel.Tag> =
+    suspend fun tags(): List<SelfossModel.Tag>? =
         client.get(url("/tags")) {
-            parameter("username", userName)
-            parameter("password", password)
-        }
+                parameter("username", apiDetailsService.getUserName())
+                parameter("password", apiDetailsService.getPassword())
+            }.body()
 
-    suspend fun update(): String =
+    suspend fun update(): SelfossModel.SuccessResponse? =
         client.get(url("/update")) {
-            parameter("username", userName)
-            parameter("password", password)
-        }
+                parameter("username", apiDetailsService.getUserName())
+                parameter("password", apiDetailsService.getPassword())
+            }.body()
 
-    suspend fun spouts(): Map<String, SelfossModel.Spout> =
-        client.get(url("/sources/spouts")) {
-            parameter("username", userName)
-            parameter("password", password)
-        }
+    suspend fun spouts(): Map<String, SelfossModel.Spout>? =
+        client.get(url("/a/spouts")) {
+                parameter("username", apiDetailsService.getUserName())
+                parameter("password", apiDetailsService.getPassword())
+            }.body()
 
-    suspend fun sources(): List<SelfossModel.Source> =
+    suspend fun sources(): ArrayList<SelfossModel.Source>? =
         client.get(url("/sources/list")) {
-            parameter("username", userName)
-            parameter("password", password)
+                parameter("username", apiDetailsService.getUserName())
+                parameter("password", apiDetailsService.getPassword())
+            }.body()
+
+    suspend fun version(): SelfossModel.ApiVersion? =
+        client.get(url("/api/about")).body()
+
+    suspend fun markAsRead(id: String): SelfossModel.SuccessResponse? =
+        client.submitForm(
+                url = url("/mark/$id"),
+                formParameters = Parameters.build {
+                    append("username", apiDetailsService.getUserName())
+                    append("password", apiDetailsService.getPassword())
+                },
+                encodeInQuery = true
+            ).body()
+
+    suspend fun unmarkAsRead(id: String): SelfossModel.SuccessResponse? =
+        client.submitForm(
+                url = url("/unmark/$id"),
+                formParameters = Parameters.build {
+                    append("username", apiDetailsService.getUserName())
+                    append("password", apiDetailsService.getPassword())
+                },
+                encodeInQuery = true
+            ).body()
+
+    suspend fun starr(id: String): SelfossModel.SuccessResponse? =
+        client.submitForm(
+                url = url("/starr/$id"),
+                formParameters = Parameters.build {
+                    append("username", apiDetailsService.getUserName())
+                    append("password", apiDetailsService.getPassword())
+                },
+                encodeInQuery = true
+            ).body()
+
+    suspend fun unstarr(id: String): SelfossModel.SuccessResponse? =
+        client.submitForm(
+                url = url("/unstarr/$id"),
+                formParameters = Parameters.build {
+                    append("username", apiDetailsService.getUserName())
+                    append("password", apiDetailsService.getPassword())
+                },
+                encodeInQuery = true
+            ).body()
+
+    suspend fun markAllAsRead(ids: List<String>): SelfossModel.SuccessResponse? =
+        client.submitForm(
+                url = url("/mark"),
+                formParameters = Parameters.build {
+                    append("username", apiDetailsService.getUserName())
+                    append("password", apiDetailsService.getPassword())
+                    append("ids[]", ids.joinToString(","))
+                },
+                encodeInQuery = true
+            ).body()
+
+    suspend fun createSourceForVersion(
+        title: String,
+        url: String,
+        spout: String,
+        tags: String,
+        filter: String,
+        version: Int
+    ): SelfossModel.SuccessResponse? =
+        if (version > 1) {
+            createSource(title, url, spout, tags, filter)
+        } else {
+            createSource2(title, url, spout, tags, filter)
         }
 
-    suspend fun version(): SelfossModel.ApiVersion =
-        client.get(url("/api/about"))
-
-    suspend fun markAsRead(id: String): SelfossModel.SuccessResponse =
+    private suspend fun createSource(
+        title: String,
+        url: String,
+        spout: String,
+        tags: String,
+        filter: String
+    ): SelfossModel.SuccessResponse? =
         client.submitForm(
-            url = url("/mark/$id"),
-            formParameters = Parameters.build {
-                append("username", userName)
-                append("password", password)
-            },
-            encodeInQuery = true
-        )
+                url = url("/source"),
+                formParameters = Parameters.build {
+                    append("username", apiDetailsService.getUserName())
+                    append("password", apiDetailsService.getPassword())
+                    append("title", title)
+                    append("url", url)
+                    append("spout", spout)
+                    append("tags", tags)
+                    append("filter", filter)
+                },
+                encodeInQuery = true
+            ).body()
 
-    suspend fun unmarkAsRead(id: String): SelfossModel.SuccessResponse =
+    private suspend fun createSource2(
+        title: String,
+        url: String,
+        spout: String,
+        tags: String,
+        filter: String
+    ): SelfossModel.SuccessResponse? =
         client.submitForm(
-            url = url("/unmark/$id"),
-            formParameters = Parameters.build {
-                append("username", userName)
-                append("password", password)
-            },
-            encodeInQuery = true
-        )
+                url = url("/source"),
+                formParameters = Parameters.build {
+                    append("username", apiDetailsService.getUserName())
+                    append("password", apiDetailsService.getPassword())
+                    append("title", title)
+                    append("url", url)
+                    append("spout", spout)
+                    append("tags[]", tags)
+                    append("filter", filter)
+                },
+                encodeInQuery = true
+            ).body()
 
-    suspend fun starr(id: String): SelfossModel.SuccessResponse =
-        client.submitForm(
-            url = url("/starr/$id"),
-            formParameters = Parameters.build {
-                append("username", userName)
-                append("password", password)
-            },
-            encodeInQuery = true
-        )
-
-    suspend fun unstarr(id: String): SelfossModel.SuccessResponse =
-        client.submitForm(
-            url = url("/unstarr/$id"),
-            formParameters = Parameters.build {
-                append("username", userName)
-                append("password", password)
-            },
-            encodeInQuery = true
-        )
-
-    suspend fun markAllAsRead(ids: List<String>): SelfossModel.SuccessResponse =
-        client.submitForm(
-            url = url("/mark"),
-            formParameters = Parameters.build {
-                append("username", userName)
-                append("password", password)
-                append("ids[]", ids.joinToString(","))
-            },
-            encodeInQuery = true
-        )
-
-    suspend fun createSource(title: String, url: String, spout: String, tags: String, filter: String): SelfossModel.SuccessResponse =
-        client.submitForm(
-            url = url("/source"),
-            formParameters = Parameters.build {
-                append("username", userName)
-                append("password", password)
-                append("title", title)
-                append("url", url)
-                append("spout", spout)
-                append("tags", tags)
-                append("filter", filter)
-            },
-            encodeInQuery = true
-        )
-
-    suspend fun createSource2(title: String, url: String, spout: String, tags: String, filter: String): SelfossModel.SuccessResponse =
-        client.submitForm(
-            url = url("/source"),
-            formParameters = Parameters.build {
-                append("username", userName)
-                append("password", password)
-                append("title", title)
-                append("url", url)
-                append("spout", spout)
-                append("tags[]", tags)
-                append("filter", filter)
-            },
-            encodeInQuery = true
-        )
-
-    suspend fun deleteSource(id: String) =
-        client.delete<SelfossModel.SuccessResponse>(url("/source/$id")) {
-            parameter("username", userName)
-            parameter("password", password)
-        }
+    suspend fun deleteSource(id: String): SelfossModel.SuccessResponse? =
+        client.delete(url("/source/$id")) {
+                parameter("username", apiDetailsService.getUserName())
+                parameter("password", apiDetailsService.getPassword())
+            }.body()
 }

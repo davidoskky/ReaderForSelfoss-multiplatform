@@ -3,9 +3,10 @@ package bou.amine.apps.readerforselfossv2.android.persistence.entities
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import bou.amine.apps.readerforselfossv2.rest.SelfossModel
 
 @Entity(tableName = "items")
-data class ItemEntity(
+data class AndroidItemEntity(
     @PrimaryKey
     @ColumnInfo(name = "id")
     val id: String,

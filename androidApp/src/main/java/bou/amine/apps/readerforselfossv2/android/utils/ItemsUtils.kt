@@ -1,8 +1,10 @@
 package bou.amine.apps.readerforselfossv2.android.utils
 
 import android.content.Context
-import bou.amine.apps.readerforselfossv2.android.api.selfoss.Item
-import bou.amine.apps.readerforselfossv2.android.api.selfoss.SelfossTagType
+import bou.amine.apps.readerforselfossv2.android.model.getSourceTitle
+import bou.amine.apps.readerforselfossv2.rest.SelfossModel
+import bou.amine.apps.readerforselfossv2.utils.DateUtils
+import bou.amine.apps.readerforselfossv2.utils.parseRelativeDate
 
 fun String.toTextDrawableString(c: Context): String {
     val textDrawable = StringBuilder()
@@ -15,22 +17,22 @@ fun String.toTextDrawableString(c: Context): String {
     return textDrawable.toString()
 }
 
-fun Item.sourceAndDateText(): String {
-    val formattedDate = parseRelativeDate(this.datetime)
+fun SelfossModel.Item.sourceAndDateText(dateUtils: DateUtils): String {
+    val formattedDate = parseRelativeDate(dateUtils)
 
-    return this.getSourceTitle() + formattedDate
+    return getSourceTitle() + formattedDate
 }
 
-fun Item.toggleStar(): Item {
-    this.starred = !this.starred
+fun SelfossModel.Item.toggleStar(): SelfossModel.Item {
+    this.starred = if (this.starred == 0) 1 else 0
     return this
 }
 
-fun List<Item>.flattenTags(): List<Item> =
+fun List<SelfossModel.Item>.flattenTags(): List<SelfossModel.Item> =
     this.flatMap {
         val item = it
-        val tags: List<String> = it.tags.tags.split(",")
+        val tags: List<String> = it.tags.split(",")
         tags.map { t ->
-            item.copy(tags = SelfossTagType(t.trim()))
+            item.copy(tags = t.trim())
         }
     }

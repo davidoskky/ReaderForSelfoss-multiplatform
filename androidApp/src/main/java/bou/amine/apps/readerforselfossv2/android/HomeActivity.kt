@@ -29,27 +29,37 @@ import androidx.work.WorkManager
 import bou.amine.apps.readerforselfossv2.android.adapters.ItemCardAdapter
 import bou.amine.apps.readerforselfossv2.android.adapters.ItemListAdapter
 import bou.amine.apps.readerforselfossv2.android.adapters.ItemsAdapter
-import bou.amine.apps.readerforselfossv2.android.api.selfoss.*
 import bou.amine.apps.readerforselfossv2.android.background.LoadingWorker
 import bou.amine.apps.readerforselfossv2.android.databinding.ActivityHomeBinding
+import bou.amine.apps.readerforselfossv2.android.model.getIcon
+import bou.amine.apps.readerforselfossv2.android.model.getTitleDecoded
+import bou.amine.apps.readerforselfossv2.android.persistence.AndroidDeviceDatabase
+import bou.amine.apps.readerforselfossv2.android.persistence.AndroidDeviceDatabaseService
 import bou.amine.apps.readerforselfossv2.android.persistence.database.AppDatabase
 import bou.amine.apps.readerforselfossv2.android.persistence.entities.ActionEntity
+import bou.amine.apps.readerforselfossv2.android.persistence.entities.AndroidItemEntity
 import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_1_2
 import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_2_3
 import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_3_4
+import bou.amine.apps.readerforselfossv2.android.service.AndroidApiDetailsService
 import bou.amine.apps.readerforselfossv2.android.settings.SettingsActivity
 import bou.amine.apps.readerforselfossv2.android.themes.AppColors
 import bou.amine.apps.readerforselfossv2.android.themes.Toppings
 import bou.amine.apps.readerforselfossv2.android.utils.Config
-import bou.amine.apps.readerforselfossv2.android.utils.SharedItems
 import bou.amine.apps.readerforselfossv2.android.utils.bottombar.maybeShow
 import bou.amine.apps.readerforselfossv2.android.utils.bottombar.removeBadge
 import bou.amine.apps.readerforselfossv2.android.utils.customtabs.CustomTabActivityHelper
-import bou.amine.apps.readerforselfossv2.android.utils.longHash
-import bou.amine.apps.readerforselfossv2.android.utils.network.isNetworkAccessible
+import bou.amine.apps.readerforselfossv2.android.utils.network.isNetworkAvailable
 import bou.amine.apps.readerforselfossv2.android.utils.persistence.toEntity
 import bou.amine.apps.readerforselfossv2.android.utils.persistence.toView
-import bou.amine.apps.readerforselfossv2.android.api.selfoss.*
+
+import bou.amine.apps.readerforselfossv2.utils.DateUtils
+import bou.amine.apps.readerforselfossv2.rest.SelfossApi
+import bou.amine.apps.readerforselfossv2.rest.SelfossModel
+import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
+import bou.amine.apps.readerforselfossv2.service.SearchService
+import bou.amine.apps.readerforselfossv2.service.SelfossService
+import bou.amine.apps.readerforselfossv2.utils.longHash
 import com.ashokvarma.bottomnavigation.BottomNavigationBar
 import com.ashokvarma.bottomnavigation.BottomNavigationItem
 import com.ashokvarma.bottomnavigation.TextBadgeItem
@@ -73,14 +83,16 @@ import com.mikepenz.materialdrawer.widget.AccountHeaderView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
 class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
 
+    private lateinit var dataBase: AndroidDeviceDatabase
+    private lateinit var dbService: AndroidDeviceDatabaseService
+    private lateinit var searchService: SearchService
+    private lateinit var apiDetailsService: ApiDetailsService
+    private lateinit var service: SelfossService<AndroidItemEntity>
     private val MENU_PREFERENCES = 12302
     private val DRAWER_ID_TAGS = 100101L
     private val DRAWER_ID_HIDDEN_TAGS = 101100L
@@ -90,8 +102,8 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
     private val READ_SHOWN = 2
     private val FAV_SHOWN = 3
 
-    private var items: ArrayList<Item> = ArrayList()
-    private var allItems: ArrayList<Item> = ArrayList()
+    private var items: ArrayList<SelfossModel.Item> = ArrayList()
+    private var allItems: ArrayList<SelfossModel.Item> = ArrayList()
 
     private var internalBrowser = false
     private var articleViewer = false
@@ -105,7 +117,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
     private var displayAccountHeader: Boolean = false
     private var infiniteScroll: Boolean = false
     private var lastFetchDone: Boolean = false
-    private var itemsCaching: Boolean = false
     private var updateSources: Boolean = true
     private var markOnScroll: Boolean = false
     private var hiddenTags: List<String> = emptyList()
@@ -140,7 +151,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
 
     private lateinit var config: Config
 
-    data class DrawerData(val tags: List<Tag>?, val sources: List<Source>?)
+    data class DrawerData(val tags: List<SelfossModel.Tag>?, val sources: List<SelfossModel.Source>?)
 
     override fun onStart() {
         super.onStart()
@@ -184,12 +195,19 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
         sharedPref = PreferenceManager.getDefaultSharedPreferences(this)
         settings = getSharedPreferences(Config.settingsName, Context.MODE_PRIVATE)
 
+        apiDetailsService = AndroidApiDetailsService(applicationContext)
         api = SelfossApi(
-            this,
-            this@HomeActivity,
-            settings.getBoolean("isSelfSignedCert", false),
-            sharedPref.getString("api_timeout", "-1")!!.toLong()
+//            this,
+//            this@HomeActivity,
+//            settings.getBoolean("isSelfSignedCert", false),
+//            sharedPref.getString("api_timeout", "-1")!!.toLong()
+            apiDetailsService
         )
+
+        dataBase = AndroidDeviceDatabase(applicationContext)
+        searchService = SearchService(DateUtils(apiDetailsService))
+        dbService = AndroidDeviceDatabaseService(dataBase, searchService)
+        service = SelfossService(api, dbService, searchService)
         items = ArrayList()
         allItems = ArrayList()
 
@@ -217,7 +235,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
             lastFetchDone = false
             handleDrawerItems()
             CoroutineScope(Dispatchers.Main).launch {
-                refreshFocusedItems(applicationContext, api, db, itemsNumber)
+                service.refreshFocusedItems(itemsNumber, applicationContext.isNetworkAvailable())
                 getElementsAccordingToTab()
                 binding.swipeRefreshLayout.isRefreshing = false
             }
@@ -258,7 +276,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
 
                         reloadBadgeContent()
 
-                        val tagHashes = i.tags.tags.split(",").map { it.longHash() }
+                        val tagHashes = i.tags.split(",").map { it.longHash() }
                         tagsBadge = tagsBadge.map {
                             if (tagHashes.contains(it.key)) {
                                 (it.key to (it.value - 1))
@@ -334,21 +352,13 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
     }
 
     private fun getApiMajorVersion() {
-        api.apiVersion.enqueue(object : Callback<ApiVersion> {
-            override fun onFailure(call: Call<ApiVersion>, t: Throwable) {
-                Config.apiVersion = apiVersionMajor
+        CoroutineScope(Dispatchers.IO).launch {
+            val version = api.version()
+            if (version != null) {
+                apiVersionMajor = version.getApiMajorVersion()
+                sharedPref.edit().putInt("apiVersionMajor", apiVersionMajor).apply()
             }
-
-            override fun onResponse(call: Call<ApiVersion>, response: Response<ApiVersion>) {
-                if(response.body() != null) {
-                    val version = response.body() as ApiVersion
-                    apiVersionMajor = version.getApiMajorVersion()
-                    sharedPref.edit().putInt("apiVersionMajor", apiVersionMajor).apply()
-
-                    Config.apiVersion = apiVersionMajor
-                }
-            }
-        })
+        }
     }
 
     override fun onResume() {
@@ -382,17 +392,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
         getElementsAccordingToTab()
     }
 
-    private fun getAndStoreAllItems() {
-         CoroutineScope(Dispatchers.Main).launch {
-             binding.swipeRefreshLayout.isRefreshing = true
-             getAndStoreAllItems(applicationContext ,api, db)
-             this@HomeActivity.isNetworkAccessible(this@HomeActivity.findViewById(R.id.coordLayout), offlineShortcut)
-             handleListResult()
-             binding.swipeRefreshLayout.isRefreshing = false
-             SharedItems.updateDatabase(db)
-         }
-    }
-
     override fun onStop() {
         super.onStop()
         customTabActivityHelper.unbindCustomTabsService(this)
@@ -409,8 +408,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
         userIdentifier = sharedPref.getString("unique_id", "")!!
         displayAccountHeader = sharedPref.getBoolean("account_header_displaying", false)
         infiniteScroll = sharedPref.getBoolean("infinite_loading", false)
-        itemsCaching = sharedPref.getBoolean("items_caching", false)
-        SharedItems.itemsCaching = itemsCaching
+        searchService.itemsCaching = sharedPref.getBoolean("items_caching", false)
         updateSources = sharedPref.getBoolean("update_sources", true)
         markOnScroll = sharedPref.getBoolean("mark_on_scroll", false)
         hiddenTags = if (sharedPref.getString("hidden_tags", "")!!.isNotEmpty()) {
@@ -525,7 +523,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
     private fun handleDrawerItems() {
         tagsBadge = emptyMap()
         fun handleDrawerData(maybeDrawerData: DrawerData?, loadedFromCache: Boolean = false) {
-            fun handleTags(maybeTags: List<Tag>?) {
+            fun handleTags(maybeTags: List<SelfossModel.Tag>?) {
                 if (maybeTags == null) {
                     if (loadedFromCache) {
                         binding.mainDrawer.itemAdapter.add(
@@ -560,9 +558,9 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
                                         color = ColorHolder.fromColor(appColors.colorAccent) }
                                     onDrawerItemClickListener = { _,_,_ ->
                                         allItems = ArrayList()
-                                        SharedItems.tagFilter = it.tag
-                                        SharedItems.sourceFilter = null
-                                        SharedItems.sourceIDFilter = null
+                                        searchService.tagFilter = it.tag
+                                        searchService.sourceFilter = null
+                                        searchService.sourceIDFilter = null
                                         getElementsAccordingToTab()
                                         fetchOnEmptyList()
                                         false
@@ -578,7 +576,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
                 }
             }
 
-            fun handleHiddenTags(maybeTags: List<Tag>?) {
+            fun handleHiddenTags(maybeTags: List<SelfossModel.Tag>?) {
                 if (maybeTags == null) {
                     if (loadedFromCache) {
                         binding.mainDrawer.itemAdapter.add(
@@ -589,7 +587,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
                         )
                     }
                 } else {
-                    val filteredHiddenTags: List<Tag> =
+                    val filteredHiddenTags: List<SelfossModel.Tag> =
                         maybeTags.filter { hiddenTags.contains(it.tag) }
                     tagsBadge = filteredHiddenTags.map {
                         val gd = GradientDrawable()
@@ -613,9 +611,9 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
                                     color = ColorHolder.fromColor(appColors.colorAccent) }
                                 onDrawerItemClickListener = { _,_,_ ->
                                     allItems = ArrayList()
-                                    SharedItems.tagFilter = it.tag
-                                    SharedItems.sourceFilter = null
-                                    SharedItems.sourceIDFilter = null
+                                    searchService.tagFilter = it.tag
+                                    searchService.sourceFilter = null
+                                    searchService.sourceIDFilter = null
                                     getElementsAccordingToTab()
                                     fetchOnEmptyList()
                                     false
@@ -631,7 +629,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
                 }
             }
 
-            fun handleSources(maybeSources: List<Source>?) {
+            fun handleSources(maybeSources: List<SelfossModel.Source>?) {
                 if (maybeSources == null) {
                     if (loadedFromCache) {
                         binding.mainDrawer.itemAdapter.add(
@@ -646,12 +644,12 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
                         val item = PrimaryDrawerItem().apply {
                             nameText = source.getTitleDecoded()
                             identifier = source.id.toLong()
-                            iconUrl = source.getIcon(this@HomeActivity)
+                            iconUrl = source.getIcon(apiDetailsService.getBaseUrl())
                             onDrawerItemClickListener = { _,_,_ ->
                                 allItems = ArrayList()
-                                SharedItems.sourceIDFilter = source.id.toLong()
-                                SharedItems.sourceFilter = source.title
-                                SharedItems.tagFilter = null
+                                searchService.sourceIDFilter = source.id.toLong()
+                                searchService.sourceFilter = source.title
+                                searchService.tagFilter = null
                                 getElementsAccordingToTab()
                                 fetchOnEmptyList()
                                 false
@@ -672,9 +670,9 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
                         badgeRes = R.string.drawer_action_clear
                         onDrawerItemClickListener = { _,_,_ ->
                             allItems = ArrayList()
-                            SharedItems.sourceFilter = null
-                            SharedItems.sourceIDFilter = null
-                            SharedItems.tagFilter = null
+                            searchService.sourceFilter = null
+                            searchService.sourceIDFilter = null
+                            searchService.tagFilter = null
                             binding.mainDrawer.setSelectionAtPosition(-1)
                             getElementsAccordingToTab()
                             fetchOnEmptyList()
@@ -769,47 +767,37 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
         }
 
         fun drawerApiCalls(maybeDrawerData: DrawerData?) {
-            var tags: List<Tag>? = null
-            var sources: List<Source>?
+            var tags: List<SelfossModel.Tag>? = null
+            var sources: List<SelfossModel.Source>?
 
             fun sourcesApiCall() {
-                if (this@HomeActivity.isNetworkAccessible(null, offlineShortcut) && updateSources) {
-                    api.sources.enqueue(object : Callback<List<Source>> {
-                        override fun onResponse(
-                            call: Call<List<Source>>?,
-                            response: Response<List<Source>>
-                        ) {
-                            sources = response.body()
+                if (this@HomeActivity.isNetworkAvailable(null, offlineShortcut) && updateSources) {
+                    CoroutineScope(Dispatchers.Main).launch {
+                        val response = api.sources()
+                        if (response != null) {
+                            sources = response
                             val apiDrawerData = DrawerData(tags, sources)
                             if ((maybeDrawerData != null && maybeDrawerData != apiDrawerData) || maybeDrawerData == null) {
                                 handleDrawerData(apiDrawerData)
                             }
-                        }
-
-                        override fun onFailure(call: Call<List<Source>>?, t: Throwable?) {
+                        } else {
                             val apiDrawerData = DrawerData(tags, null)
                             if ((maybeDrawerData != null && maybeDrawerData != apiDrawerData) || maybeDrawerData == null) {
                                 handleDrawerData(apiDrawerData)
                             }
                         }
-                    })
+                    }
                 }
             }
 
-            if (this@HomeActivity.isNetworkAccessible(null, offlineShortcut) && updateSources) {
-                api.tags.enqueue(object : Callback<List<Tag>> {
-                    override fun onResponse(
-                        call: Call<List<Tag>>,
-                        response: Response<List<Tag>>
-                    ) {
-                        tags = response.body()
-                        sourcesApiCall()
+            if (this@HomeActivity.isNetworkAvailable(null, offlineShortcut) && updateSources) {
+                CoroutineScope(Dispatchers.IO).launch {
+                    val response = api.tags()
+                    if (response != null) {
+                        tags = response
                     }
-
-                    override fun onFailure(call: Call<List<Tag>>?, t: Throwable?) {
-                        sourcesApiCall()
-                    }
-                })
+                    sourcesApiCall()
+                }
             }
         }
 
@@ -914,9 +902,10 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
 
     private fun fetchOnEmptyList() {
         binding.recyclerView.doOnNextLayout {
-            if (SharedItems.focusedItems.size - 1 == getLastVisibleItem()) {
-                getElementsAccordingToTab(true)
-            }
+            // Todo:
+//            if (SharedItems.focusedItems.size - 1 == getLastVisibleItem()) {
+//                getElementsAccordingToTab(true)
+//            }
         }
     }
 
@@ -968,11 +957,12 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
             }
         }
 
-        offset = if (appendResults) {
-            SharedItems.focusedItems.size - 1
-        } else {
-            0
-        }
+        // Todo:
+//        offset = if (appendResults) {
+//            SharedItems.focusedItems.size - 1
+//        } else {
+//            0
+//        }
         firstVisible = if (appendResults) firstVisible else 0
 
         doGetAccordingToTab()
@@ -980,39 +970,41 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
 
     private fun getUnRead(appendResults: Boolean = false) {
         CoroutineScope(Dispatchers.Main).launch {
-            if (appendResults || !SharedItems.fetchedUnread) {
-                binding.swipeRefreshLayout.isRefreshing = true
-                getUnreadItems(applicationContext, api, db, itemsNumber, offset)
-                binding.swipeRefreshLayout.isRefreshing = false
-            }
-            SharedItems.getUnRead()
-            items = SharedItems.focusedItems
+            // Todo:
+//            if (appendResults || !SharedItems.fetchedUnread) {
+//                binding.swipeRefreshLayout.isRefreshing = true
+//                service.getUnreadItems(itemsNumber, offset, applicationContext.isNetworkAvailable())
+//                binding.swipeRefreshLayout.isRefreshing = false
+//            }
+            // Todo: SharedItems.getUnRead()
+            // Todo: items = SharedItems.focusedItems
             handleListResult()
         }
     }
 
     private fun getRead(appendResults: Boolean = false) {
         CoroutineScope(Dispatchers.Main).launch {
-            if (appendResults || !SharedItems.fetchedAll) {
-                binding.swipeRefreshLayout.isRefreshing = true
-                getReadItems(applicationContext, api, db, itemsNumber, offset)
-                binding.swipeRefreshLayout.isRefreshing = false
-            }
-            SharedItems.getAll()
-            items = SharedItems.focusedItems
+            // Todo:
+//            if (appendResults || !SharedItems.fetchedAll) {
+//                binding.swipeRefreshLayout.isRefreshing = true
+//                service.getReadItems(itemsNumber, offset, applicationContext.isNetworkAvailable())
+//                binding.swipeRefreshLayout.isRefreshing = false
+//            }
+//            SharedItems.getAll()
+//            items = SharedItems.focusedItems
             handleListResult()
         }
     }
 
     private fun getStarred(appendResults: Boolean = false) {
         CoroutineScope(Dispatchers.Main).launch {
-            if (appendResults || !SharedItems.fetchedStarred) {
+            if (appendResults || !searchService.fetchedStarred) {
                 binding.swipeRefreshLayout.isRefreshing = true
-                getStarredItems(applicationContext, api, db, itemsNumber, offset)
+                service.getStarredItems(itemsNumber, offset, applicationContext.isNetworkAvailable())
                 binding.swipeRefreshLayout.isRefreshing = false
             }
-            SharedItems.getStarred()
-            items = SharedItems.focusedItems
+            // Todo: SharedItems.getStarred()
+            // Todo: items = SharedItems.focusedItems
             handleListResult()
         }
     }
@@ -1036,6 +1028,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
                             this,
                             items,
                             api,
+                            apiDetailsService,
                             db,
                             customTabActivityHelper,
                             internalBrowser,
@@ -1043,7 +1036,8 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
                             fullHeightCards,
                             appColors,
                             userIdentifier,
-                            config
+                            config,
+                            searchService
                         ) {
                             updateItems(it)
                         }
@@ -1053,13 +1047,15 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
                             this,
                             items,
                             api,
+                            apiDetailsService,
                             db,
                             customTabActivityHelper,
                             internalBrowser,
                             articleViewer,
                             userIdentifier,
                             appColors,
-                            config
+                            config,
+                            searchService
                         ) {
                             updateItems(it)
                         }
@@ -1083,7 +1079,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
     private fun reloadBadges() {
         if (displayUnreadCount || displayAllCount) {
             CoroutineScope(Dispatchers.Main).launch {
-                reloadBadges(applicationContext, api)
+                service.reloadBadges(applicationContext.isNetworkAvailable())
                 reloadBadgeContent()
             }
         }
@@ -1092,15 +1088,15 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
     private fun reloadBadgeContent() {
         if (displayUnreadCount) {
             tabNewBadge
-                .setText(SharedItems.badgeUnread.toString())
+                .setText(searchService.badgeUnread.toString())
                 .maybeShow()
         }
         if (displayAllCount) {
             tabArchiveBadge
-                .setText(SharedItems.badgeAll.toString())
+                .setText(searchService.badgeAll.toString())
                 .maybeShow()
             tabStarredBadge
-                .setText(SharedItems.badgeStarred.toString())
+                .setText(searchService.badgeStarred.toString())
                 .maybeShow()
         }
     }
@@ -1120,7 +1116,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
 
     override fun onQueryTextChange(p0: String?): Boolean {
         if (p0.isNullOrBlank()) {
-            SharedItems.searchFilter = null
+            searchService.searchFilter = null
             getElementsAccordingToTab()
             fetchOnEmptyList()
         }
@@ -1128,7 +1124,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
     }
 
     override fun onQueryTextSubmit(p0: String?): Boolean {
-        SharedItems.searchFilter = p0
+        searchService.searchFilter = p0
         getElementsAccordingToTab()
         fetchOnEmptyList()
         return false
@@ -1158,29 +1154,25 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.refresh -> {
-                if (this@HomeActivity.isNetworkAccessible(null, offlineShortcut)) {
+                if (this@HomeActivity.isNetworkAvailable(null, offlineShortcut)) {
                     needsConfirmation(R.string.menu_home_refresh, R.string.refresh_dialog_message) {
-                        api.update().enqueue(object : Callback<String> {
-                            override fun onResponse(
-                                call: Call<String>,
-                                response: Response<String>
-                            ) {
+                        Toast.makeText(this, R.string.refresh_in_progress, Toast.LENGTH_SHORT).show()
+                        CoroutineScope(Dispatchers.Main).launch {
+                            val status = api.update()
+                            if (status != null && status.isSuccess) {
                                 Toast.makeText(
                                     this@HomeActivity,
                                     R.string.refresh_success_response, Toast.LENGTH_LONG
                                 )
                                     .show()
-                            }
-
-                            override fun onFailure(call: Call<String>, t: Throwable) {
+                            } else {
                                 Toast.makeText(
                                     this@HomeActivity,
                                     R.string.refresh_failer_message,
                                     Toast.LENGTH_SHORT
                                 ).show()
                             }
-                        })
-                        Toast.makeText(this, R.string.refresh_in_progress, Toast.LENGTH_SHORT).show()
+                        }
                     }
                     return true
                 } else {
@@ -1192,9 +1184,9 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
                     needsConfirmation(R.string.readAll, R.string.markall_dialog_message) {
                         binding.swipeRefreshLayout.isRefreshing = true
 
-                        if (this@HomeActivity.isNetworkAccessible(null, offlineShortcut)) {
+                        if (this@HomeActivity.isNetworkAvailable(null, offlineShortcut)) {
                             CoroutineScope(Dispatchers.Main).launch {
-                                val success = readAll(applicationContext, api, db)
+                                val success = service.readAll(applicationContext.isNetworkAvailable())
                                 if (success) {
                                     Toast.makeText(
                                         this@HomeActivity,
@@ -1230,13 +1222,13 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
 
     private fun maxItemNumber(): Int =
         when (elementsShown) {
-            UNREAD_SHOWN -> SharedItems.badgeUnread
-            READ_SHOWN -> SharedItems.badgeAll
-            FAV_SHOWN -> SharedItems.badgeStarred
-            else -> SharedItems.badgeUnread // if !elementsShown then unread are fetched.
+            UNREAD_SHOWN -> searchService.badgeUnread
+            READ_SHOWN -> searchService.badgeAll
+            FAV_SHOWN -> searchService.badgeStarred
+            else -> searchService.badgeUnread // if !elementsShown then unread are fetched.
         }
 
-    private fun updateItems(adapterItems: ArrayList<Item>) {
+    private fun updateItems(adapterItems: ArrayList<SelfossModel.Item>) {
         items = adapterItems
     }
 
@@ -1259,32 +1251,24 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
     }
 
     private fun handleOfflineActions() {
-        fun <T>doAndReportOnFail(call: Call<T>, action: ActionEntity) {
-           call.enqueue(object: Callback<T> {
-               override fun onResponse(
-                   call: Call<T>,
-                   response: Response<T>
-               ) {
-                   thread {
-                       db.actionsDao().delete(action)
-                   }
-               }
-
-               override fun onFailure(call: Call<T>, t: Throwable) {
-               }
-           })
+        fun doAndReportOnFail(call: SelfossModel.SuccessResponse?, action: ActionEntity) {
+            if (call != null && call.isSuccess) {
+                thread {
+                    db.actionsDao().delete(action)
+                }
+            }
         }
 
-        if (this@HomeActivity.isNetworkAccessible(null, offlineShortcut)) {
+        if (this@HomeActivity.isNetworkAvailable(null, offlineShortcut)) {
             CoroutineScope(Dispatchers.Main).launch {
                 val actions = db.actionsDao().actions()
 
                 actions.forEach { action ->
                     when {
-                        action.read -> doAndReportOnFail(api.markItem(action.articleId), action)
-                        action.unread -> doAndReportOnFail(api.unmarkItem(action.articleId), action)
-                        action.starred -> doAndReportOnFail(api.starrItem(action.articleId), action)
-                        action.unstarred -> doAndReportOnFail(api.unstarrItem(action.articleId), action)
+                        action.read -> doAndReportOnFail(api.markAsRead(action.articleId), action)
+                        action.unread -> doAndReportOnFail(api.unmarkAsRead(action.articleId), action)
+                        action.starred -> doAndReportOnFail(api.starr(action.articleId), action)
+                        action.unstarred -> doAndReportOnFail(api.unstarr(action.articleId), action)
                     }
                 }
             }

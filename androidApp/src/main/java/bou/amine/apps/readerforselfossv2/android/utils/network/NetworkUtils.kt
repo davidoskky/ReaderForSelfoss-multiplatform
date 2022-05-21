@@ -14,8 +14,11 @@ var snackBarShown = false
 var view: View? = null
 lateinit var s: Snackbar
 
-fun Context.isNetworkAccessible(v: View?, overrideOffline: Boolean = false): Boolean {
-    val networkIsAccessible = isNetworkAvailable(this)
+fun Context.isNetworkAvailable(
+    v: View? = null,
+    overrideOffline: Boolean = false
+): Boolean {
+    val networkIsAccessible = isNetworkAccessible(this)
 
     if (v != null && (!networkIsAccessible || overrideOffline) && (!snackBarShown || v != view)) {
         view = v
@@ -43,22 +46,22 @@ fun Context.isNetworkAccessible(v: View?, overrideOffline: Boolean = false): Boo
     return if(overrideOffline) overrideOffline else networkIsAccessible
 }
 
-fun isNetworkAvailable(context: Context): Boolean {
+private fun isNetworkAccessible(context: Context): Boolean {
     val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
-     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-         val network = connectivityManager.activeNetwork ?: return false
-         val networkCapabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        val network = connectivityManager.activeNetwork ?: return false
+        val networkCapabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
 
-         return when {
-             networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_BLUETOOTH) -> true
-             networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> true
-             networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> true
-             networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> true
-             else -> false
-         }
+        return when {
+            networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_BLUETOOTH) -> true
+            networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> true
+            networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> true
+            networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> true
+            else -> false
+        }
     } else {
         val network = connectivityManager.activeNetworkInfo ?: return false
-         return network.isConnectedOrConnecting
+        return network.isConnectedOrConnecting
     }
 }

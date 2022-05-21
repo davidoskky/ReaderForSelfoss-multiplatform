@@ -14,22 +14,27 @@ import androidx.work.Worker
 import androidx.work.WorkerParameters
 import bou.amine.apps.readerforselfossv2.android.MainActivity
 import bou.amine.apps.readerforselfossv2.android.R
-import bou.amine.apps.readerforselfossv2.android.api.selfoss.SelfossApi
-import bou.amine.apps.readerforselfossv2.android.api.selfoss.getAndStoreAllItems
+import bou.amine.apps.readerforselfossv2.android.model.preloadImages
+import bou.amine.apps.readerforselfossv2.android.persistence.AndroidDeviceDatabase
+import bou.amine.apps.readerforselfossv2.android.persistence.AndroidDeviceDatabaseService
 import bou.amine.apps.readerforselfossv2.android.persistence.database.AppDatabase
 import bou.amine.apps.readerforselfossv2.android.persistence.entities.ActionEntity
 import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_1_2
 import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_2_3
 import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_3_4
+import bou.amine.apps.readerforselfossv2.android.service.AndroidApiDetailsService
 import bou.amine.apps.readerforselfossv2.android.utils.Config
-import bou.amine.apps.readerforselfossv2.android.utils.SharedItems
 import bou.amine.apps.readerforselfossv2.android.utils.network.isNetworkAvailable
+
+import bou.amine.apps.readerforselfossv2.rest.SelfossApi
+import bou.amine.apps.readerforselfossv2.rest.SelfossModel
+import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
+import bou.amine.apps.readerforselfossv2.service.SearchService
+import bou.amine.apps.readerforselfossv2.service.SelfossService
+import bou.amine.apps.readerforselfossv2.utils.DateUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
 import java.util.*
 import kotlin.concurrent.schedule
 import kotlin.concurrent.thread
@@ -43,14 +48,20 @@ override fun doWork(): Result {
     val sharedPref = PreferenceManager.getDefaultSharedPreferences(this.context)
     val periodicRefresh = sharedPref.getBoolean("periodic_refresh", false)
     if (periodicRefresh) {
+        val apiDetailsService = AndroidApiDetailsService(this.context)
         val api = SelfossApi(
-            this.context,
-            null,
-            settings.getBoolean("isSelfSignedCert", false),
-            sharedPref.getString("api_timeout", "-1")!!.toLong()
+//            this.context,
+//            null,
+//            settings.getBoolean("isSelfSignedCert", false),
+//            sharedPref.getString("api_timeout", "-1")!!.toLong()
+            apiDetailsService
         )
 
-        if (isNetworkAvailable(context)) {
+        val dateUtils = DateUtils(apiDetailsService)
+        val searchService = SearchService(dateUtils)
+        val service = SelfossService(api, AndroidDeviceDatabaseService(AndroidDeviceDatabase(applicationContext), searchService), searchService)
+
+        if (context.isNetworkAvailable()) {
 
             CoroutineScope(Dispatchers.IO).launch {
                 val notificationManager =
@@ -80,26 +91,26 @@ override fun doWork(): Result {
                 actions.forEach { action ->
                     when {
                         action.read -> doAndReportOnFail(
-                            api.markItem(action.articleId),
+                            api.markAsRead(action.articleId),
                             action
                         )
                         action.unread -> doAndReportOnFail(
-                            api.unmarkItem(action.articleId),
+                            api.unmarkAsRead(action.articleId),
                             action
                         )
                         action.starred -> doAndReportOnFail(
-                            api.starrItem(action.articleId),
+                            api.starr(action.articleId),
                             action
                         )
                         action.unstarred -> doAndReportOnFail(
-                            api.unstarrItem(action.articleId),
+                            api.unstarr(action.articleId),
                             action
                         )
                     }
                 }
 
-                getAndStoreAllItems(context, api, db)
-                SharedItems.updateDatabase(db)
+                service.getAndStoreAllItems(context.isNetworkAvailable())
+                // TODO: SharedItems.updateDatabase(db, dateUtils)
                 storeItems(notifyNewItems, notificationManager)
             }
         }
@@ -109,10 +120,10 @@ override fun doWork(): Result {
 
     private fun storeItems(notifyNewItems: Boolean, notificationManager: NotificationManager) {
         CoroutineScope(Dispatchers.IO).launch {
-                val apiItems = SharedItems.items
+                val apiItems = emptyList<SelfossModel.Item>() // TODO: SharedItems.items
 
 
-                val newSize = apiItems.filter { it.unread }.size
+                val newSize = apiItems.filter { it.unread == 1 }.size
                 if (notifyNewItems && newSize > 0) {
 
                     val intent = Intent(context, MainActivity::class.java).apply {
@@ -151,19 +162,11 @@ override fun doWork(): Result {
         }
     }
 
-    private fun <T> doAndReportOnFail(call: Call<T>, action: ActionEntity) {
-        call.enqueue(object : Callback<T> {
-            override fun onResponse(
-                call: Call<T>,
-                response: Response<T>
-            ) {
-                thread {
-                    db.actionsDao().delete(action)
-                }
+    private fun doAndReportOnFail(result: SelfossModel.SuccessResponse?, action: ActionEntity) {
+        if (result != null && result.isSuccess) {
+            thread {
+                db.actionsDao().delete(action)
             }
-
-            override fun onFailure(call: Call<T>, t: Throwable) {
-            }
-        })
+        }
     }
 }

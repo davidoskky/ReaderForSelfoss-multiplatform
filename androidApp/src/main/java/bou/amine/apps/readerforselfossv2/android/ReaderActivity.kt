@@ -5,29 +5,33 @@ import android.content.SharedPreferences
 import android.graphics.Color
 import android.os.Bundle
 import android.view.KeyEvent
-import androidx.preference.PreferenceManager
-import androidx.appcompat.app.AppCompatActivity
 import android.view.Menu
 import android.view.MenuItem
+import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
+import androidx.preference.PreferenceManager
 import androidx.room.Room
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
-import bou.amine.apps.readerforselfossv2.android.api.selfoss.Item
-import bou.amine.apps.readerforselfossv2.android.api.selfoss.SelfossApi
 import bou.amine.apps.readerforselfossv2.android.databinding.ActivityReaderBinding
 import bou.amine.apps.readerforselfossv2.android.fragments.ArticleFragment
 import bou.amine.apps.readerforselfossv2.android.persistence.database.AppDatabase
 import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_1_2
 import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_2_3
 import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_3_4
+import bou.amine.apps.readerforselfossv2.android.service.AndroidApiDetailsService
 import bou.amine.apps.readerforselfossv2.android.themes.AppColors
 import bou.amine.apps.readerforselfossv2.android.themes.Toppings
 import bou.amine.apps.readerforselfossv2.android.utils.Config
-import bou.amine.apps.readerforselfossv2.android.utils.SharedItems
 import bou.amine.apps.readerforselfossv2.android.utils.toggleStar
+import bou.amine.apps.readerforselfossv2.rest.SelfossApi
+import bou.amine.apps.readerforselfossv2.rest.SelfossModel
+import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
 import com.ftinc.scoop.Scoop
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class ReaderActivity : AppCompatActivity() {
 
@@ -98,10 +102,11 @@ class ReaderActivity : AppCompatActivity() {
         activeAlignment = prefs.getInt("text_align", JUSTIFY)
 
         api = SelfossApi(
-            this,
-            this@ReaderActivity,
-            settings.getBoolean("isSelfSignedCert", false),
-            prefs.getString("api_timeout", "-1")!!.toLong()
+//            this,
+//            this@ReaderActivity,
+//            settings.getBoolean("isSelfSignedCert", false),
+//            prefs.getString("api_timeout", "-1")!!.toLong()
+            AndroidApiDetailsService(this@ReaderActivity)
         )
 
         if (allItems.isEmpty()) {
@@ -122,9 +127,11 @@ class ReaderActivity : AppCompatActivity() {
         binding.indicator.setViewPager(binding.pager)
     }
 
-    private fun readItem(item: Item) {
+    private fun readItem(item: SelfossModel.Item) {
         if (markOnScroll) {
-                SharedItems.readItem(applicationContext, api, db, item)
+                CoroutineScope(Dispatchers.IO).launch {
+                    // Todo: SharedItems.readItem(applicationContext, api, db, item)
+                }
             }
     }
 
@@ -170,7 +177,7 @@ class ReaderActivity : AppCompatActivity() {
         inflater.inflate(R.menu.reader_menu, menu)
         toolbarMenu = menu
 
-        if (allItems.isNotEmpty() && allItems[currentItem].starred) {
+        if (allItems.isNotEmpty() && allItems[currentItem].starred == 1) {
             canRemoveFromFavorite()
         } else {
             canFavorite()
@@ -187,7 +194,7 @@ class ReaderActivity : AppCompatActivity() {
                     override fun onPageSelected(position: Int) {
                         super.onPageSelected(position)
 
-                        if (allItems[position].starred) {
+                        if (allItems[position].starred == 1) {
                             canRemoveFromFavorite()
                         } else {
                             canFavorite()
@@ -218,21 +225,27 @@ class ReaderActivity : AppCompatActivity() {
                 return true
             }
             R.id.star -> {
-                if (allItems[binding.pager.currentItem].starred) {
-                    SharedItems.unstarItem(
-                        this@ReaderActivity,
-                        api,
-                        db,
-                        allItems[binding.pager.currentItem]
-                    )
+                if (allItems[binding.pager.currentItem].starred == 1) {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        // Todo:
+//                        SharedItems.unstarItem(
+//                            this@ReaderActivity,
+//                            api,
+//                            db,
+//                            allItems[binding.pager.currentItem]
+//                        )
+                    }
                     afterUnsave()
                 } else {
-                    SharedItems.starItem(
-                        this@ReaderActivity,
-                        api,
-                        db,
-                        allItems[binding.pager.currentItem]
-                    )
+                    CoroutineScope(Dispatchers.IO).launch {
+                        // Todo:
+//                        SharedItems.starItem(
+//                            this@ReaderActivity,
+//                            api,
+//                            db,
+//                            allItems[binding.pager.currentItem]
+//                        )
+                    }
                     afterSave()
                 }
             }
@@ -260,6 +273,6 @@ class ReaderActivity : AppCompatActivity() {
     }
 
     companion object {
-        var allItems: ArrayList<Item> = ArrayList()
+        var allItems: ArrayList<SelfossModel.Item> = ArrayList()
     }
 }
