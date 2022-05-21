@@ -16,7 +16,7 @@ fun TagEntity.toView(): SelfossModel.Tag =
 
 fun SourceEntity.toView(): SelfossModel.Source =
         SelfossModel.Source(
-            this.id,
+            this.id.toInt(),
             this.title,
             this.tags.split(","),
             this.spout,
@@ -26,7 +26,7 @@ fun SourceEntity.toView(): SelfossModel.Source =
 
 fun SelfossModel.Source.toEntity(): SourceEntity =
         SourceEntity(
-            this.id,
+            this.id.toString(),
             this.getTitleDecoded(),
             this.tags.joinToString(","),
             this.spout,
@@ -43,30 +43,30 @@ fun SelfossModel.Tag.toEntity(): TagEntity =
 
 fun AndroidItemEntity.toView(): SelfossModel.Item =
         SelfossModel.Item(
-            this.id,
+            this.id.toInt(),
             this.datetime,
             this.title,
             this.content,
-            if (this.unread) 1 else 0,
-            if (this.starred) 1 else 0,
+            this.unread,
+            this.starred,
             this.thumbnail,
             this.icon,
             this.link,
             this.sourcetitle,
-            this.tags
+            this.tags.split(",")
         )
 
 fun SelfossModel.Item.toEntity(): AndroidItemEntity =
     AndroidItemEntity(
-        this.id,
+        this.id.toString(),
         this.datetime,
         this.getTitleDecoded(),
         this.content,
-        this.unread == 1,
-        this.starred == 1,
+        this.unread,
+        this.starred,
         this.thumbnail,
         this.icon,
         this.link,
         this.getSourceTitle(),
-        this.tags
+        this.tags.joinToString(",")
     )

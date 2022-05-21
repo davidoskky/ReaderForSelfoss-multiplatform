@@ -28,7 +28,6 @@ import bou.amine.apps.readerforselfossv2.android.utils.network.isNetworkAvailabl
 
 import bou.amine.apps.readerforselfossv2.rest.SelfossApi
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
-import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
 import bou.amine.apps.readerforselfossv2.service.SearchService
 import bou.amine.apps.readerforselfossv2.service.SelfossService
 import bou.amine.apps.readerforselfossv2.utils.DateUtils
@@ -109,21 +108,33 @@ override fun doWork(): Result {
                     }
                 }
 
-                service.getAndStoreAllItems(context.isNetworkAvailable())
-                // TODO: SharedItems.updateDatabase(db, dateUtils)
-                storeItems(notifyNewItems, notificationManager)
+                if (context.isNetworkAvailable()) {
+                    launch {
+                        try {
+                            val newItems = service.allNewItems()
+                            handleNewItemsNotification(newItems, notifyNewItems, notificationManager)
+                            val readItems = service.allReadItems()
+                            val starredItems = service.allStarredItems()
+                            // TODO: save all to DB
+                        } catch (e: Throwable) {}
+                    }
+                }
             }
         }
     }
     return Result.success()
 }
 
-    private fun storeItems(notifyNewItems: Boolean, notificationManager: NotificationManager) {
+    private fun handleNewItemsNotification(
+        newItems: List<SelfossModel.Item>?,
+        notifyNewItems: Boolean,
+        notificationManager: NotificationManager
+    ) {
         CoroutineScope(Dispatchers.IO).launch {
-                val apiItems = emptyList<SelfossModel.Item>() // TODO: SharedItems.items
+                val apiItems = newItems.orEmpty()
 
 
-                val newSize = apiItems.filter { it.unread == 1 }.size
+                val newSize = apiItems.filter { it.unread }.size
                 if (notifyNewItems && newSize > 0) {
 
                     val intent = Intent(context, MainActivity::class.java).apply {

@@ -7,6 +7,7 @@ import io.ktor.client.engine.*
 import io.ktor.client.engine.ProxyBuilder.http
 import io.ktor.client.plugins.auth.*
 import io.ktor.client.plugins.auth.providers.*
+import io.ktor.client.plugins.cache.*
 import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
 import io.ktor.http.*
@@ -19,6 +20,7 @@ class SelfossApi(private val apiDetailsService: ApiDetailsService) {
 
     private val client = HttpClient() {
         install(ContentNegotiation) {
+            install(HttpCache)
             json(Json {
                 prettyPrint = true
                 isLenient = true
@@ -100,7 +102,7 @@ class SelfossApi(private val apiDetailsService: ApiDetailsService) {
             }.body()
 
     suspend fun spouts(): Map<String, SelfossModel.Spout>? =
-        client.get(url("/a/spouts")) {
+        client.get(url("/sources/spouts")) {
                 parameter("username", apiDetailsService.getUserName())
                 parameter("password", apiDetailsService.getPassword())
             }.body()
@@ -115,55 +117,38 @@ class SelfossApi(private val apiDetailsService: ApiDetailsService) {
         client.get(url("/api/about")).body()
 
     suspend fun markAsRead(id: String): SelfossModel.SuccessResponse? =
-        client.submitForm(
-                url = url("/mark/$id"),
-                formParameters = Parameters.build {
-                    append("username", apiDetailsService.getUserName())
-                    append("password", apiDetailsService.getPassword())
-                },
-                encodeInQuery = true
-            ).body()
+        client.post(url("/mark/$id")) {
+            parameter("username", apiDetailsService.getUserName())
+            parameter("password", apiDetailsService.getPassword())
+        }.body()
 
     suspend fun unmarkAsRead(id: String): SelfossModel.SuccessResponse? =
-        client.submitForm(
-                url = url("/unmark/$id"),
-                formParameters = Parameters.build {
-                    append("username", apiDetailsService.getUserName())
-                    append("password", apiDetailsService.getPassword())
-                },
-                encodeInQuery = true
-            ).body()
+        client.post(url("/unmark/$id")) {
+            parameter("username", apiDetailsService.getUserName())
+            parameter("password", apiDetailsService.getPassword())
+        }.body()
 
     suspend fun starr(id: String): SelfossModel.SuccessResponse? =
-        client.submitForm(
-                url = url("/starr/$id"),
-                formParameters = Parameters.build {
-                    append("username", apiDetailsService.getUserName())
-                    append("password", apiDetailsService.getPassword())
-                },
-                encodeInQuery = true
-            ).body()
+        client.post(url("/starr/$id")) {
+            parameter("username", apiDetailsService.getUserName())
+            parameter("password", apiDetailsService.getPassword())
+        }.body()
 
     suspend fun unstarr(id: String): SelfossModel.SuccessResponse? =
-        client.submitForm(
-                url = url("/unstarr/$id"),
-                formParameters = Parameters.build {
-                    append("username", apiDetailsService.getUserName())
-                    append("password", apiDetailsService.getPassword())
-                },
-                encodeInQuery = true
-            ).body()
+        client.post(url("/unstarr/$id")) {
+            parameter("username", apiDetailsService.getUserName())
+            parameter("password", apiDetailsService.getPassword())
+        }.body()
 
     suspend fun markAllAsRead(ids: List<String>): SelfossModel.SuccessResponse? =
         client.submitForm(
-                url = url("/mark"),
-                formParameters = Parameters.build {
-                    append("username", apiDetailsService.getUserName())
-                    append("password", apiDetailsService.getPassword())
-                    append("ids[]", ids.joinToString(","))
-                },
-                encodeInQuery = true
-            ).body()
+            url = url("/mark"),
+            formParameters = Parameters.build {
+                append("username", apiDetailsService.getUserName())
+                append("password", apiDetailsService.getPassword())
+                ids.map { append("ids[]", it) }
+            }
+        ).body()
 
     suspend fun createSourceForVersion(
         title: String,
@@ -186,19 +171,15 @@ class SelfossApi(private val apiDetailsService: ApiDetailsService) {
         tags: String,
         filter: String
     ): SelfossModel.SuccessResponse? =
-        client.submitForm(
-                url = url("/source"),
-                formParameters = Parameters.build {
-                    append("username", apiDetailsService.getUserName())
-                    append("password", apiDetailsService.getPassword())
-                    append("title", title)
-                    append("url", url)
-                    append("spout", spout)
-                    append("tags", tags)
-                    append("filter", filter)
-                },
-                encodeInQuery = true
-            ).body()
+        client.post(url("/source")) {
+            parameter("username", apiDetailsService.getUserName())
+            parameter("password", apiDetailsService.getPassword())
+            parameter("title", title)
+            parameter("url", url)
+            parameter("spout", spout)
+            parameter("tags", tags)
+            parameter("filter", filter)
+        }.body()
 
     private suspend fun createSource2(
         title: String,
@@ -207,21 +188,17 @@ class SelfossApi(private val apiDetailsService: ApiDetailsService) {
         tags: String,
         filter: String
     ): SelfossModel.SuccessResponse? =
-        client.submitForm(
-                url = url("/source"),
-                formParameters = Parameters.build {
-                    append("username", apiDetailsService.getUserName())
-                    append("password", apiDetailsService.getPassword())
-                    append("title", title)
-                    append("url", url)
-                    append("spout", spout)
-                    append("tags[]", tags)
-                    append("filter", filter)
-                },
-                encodeInQuery = true
-            ).body()
+        client.post(url("/source")) {
+            parameter("username", apiDetailsService.getUserName())
+            parameter("password", apiDetailsService.getPassword())
+            parameter("title", title)
+            parameter("url", url)
+            parameter("spout", spout)
+            parameter("tags[]", tags)
+            parameter("filter", filter)
+        }.body()
 
-    suspend fun deleteSource(id: String): SelfossModel.SuccessResponse? =
+    suspend fun deleteSource(id: Int): SelfossModel.SuccessResponse? =
         client.delete(url("/source/$id")) {
                 parameter("username", apiDetailsService.getUserName())
                 parameter("password", apiDetailsService.getPassword())

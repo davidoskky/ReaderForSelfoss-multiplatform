@@ -59,7 +59,7 @@ class ItemCardAdapter(
         with(holder) {
             val itm = items[position]
 
-            binding.favButton.isSelected = itm.starred == 1
+            binding.favButton.isSelected = itm.starred
             binding.title.text = itm.getTitleDecoded()
 
             binding.title.setOnTouchListener(LinkOnTouchListener())
@@ -112,17 +112,19 @@ class ItemCardAdapter(
             binding.favButton.setOnClickListener {
                 val item = items[bindingAdapterPosition]
                 if (c.isNetworkAvailable()) {
-                    if (item.starred == 1) {
+                    if (item.starred) {
                         CoroutineScope(Dispatchers.IO).launch {
-                            // Todo: SharedItems.unstarItem(c, api, db, item)
+                            api.unstarr(item.id.toString())
+                            // TODO: save to db
                         }
-                        item.starred = 0
+                        item.starred = false
                         binding.favButton.isSelected = false
                     } else {
                         CoroutineScope(Dispatchers.IO).launch {
-                            // Todo: SharedItems.starItem(c, api, db, item)
+                            api.starr(item.id.toString())
+                            // TODO: save to db
                         }
-                        item.starred = 1
+                        item.starred = true
                         binding.favButton.isSelected = true
                     }
                 }

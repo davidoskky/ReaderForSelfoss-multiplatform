@@ -29,10 +29,10 @@ abstract class ItemsAdapter<VH : RecyclerView.ViewHolder?> : RecyclerView.Adapte
     abstract val searchService: SearchService
     abstract val updateItems: (ArrayList<SelfossModel.Item>) -> Unit
 
-    fun updateAllItems() {
-        items = ArrayList() // TODO: SharedItems.focusedItems
+    fun updateAllItems(items: ArrayList<SelfossModel.Item>) {
+        this.items = items
         notifyDataSetChanged()
-        updateItems(items)
+        updateItems(this.items)
     }
 
     private fun unmarkSnackbar(i: SelfossModel.Item, position: Int) {
@@ -44,14 +44,8 @@ abstract class ItemsAdapter<VH : RecyclerView.ViewHolder?> : RecyclerView.Adapte
             )
             .setAction(R.string.undo_string) {
                 CoroutineScope(Dispatchers.IO).launch {
-                    // Todo: SharedItems.unreadItem(app, api, db, i)
+                    unreadItemAtIndex(position, false)
                 }
-                // Todo:
-//                if (SharedItems.displayedItems == "unread") {
-//                    addItemAtIndex(i, position)
-//                } else {
-//                    notifyItemChanged(position)
-//                }
             }
 
         val view = s.view
@@ -68,17 +62,7 @@ abstract class ItemsAdapter<VH : RecyclerView.ViewHolder?> : RecyclerView.Adapte
                 Snackbar.LENGTH_LONG
             )
             .setAction(R.string.undo_string) {
-                CoroutineScope(Dispatchers.IO).launch {
-                    // Todo: SharedItems.readItem(app, api, db, items[position])
-                }
-                // Todo: items = SharedItems.focusedItems
-                // Todo:
-//                if (SharedItems.displayedItems == "unread") {
-//                    notifyItemRemoved(position)
-//                    updateItems(items)
-//                } else {
-//                    notifyItemChanged(position)
-//                }
+                readItemAtIndex(position)
             }
 
         val view = s.view
@@ -88,18 +72,19 @@ abstract class ItemsAdapter<VH : RecyclerView.ViewHolder?> : RecyclerView.Adapte
     }
 
     fun handleItemAtIndex(position: Int) {
-        // Todo:
-//        if (SharedItems.unreadItemStatusAtIndex(position)) {
-//            readItemAtIndex(position)
-//        } else {
-//            unreadItemAtIndex(position)
-//        }
+        if (items[position].unread) {
+            readItemAtIndex(position)
+        } else {
+            unreadItemAtIndex(position)
+        }
     }
 
-    private fun readItemAtIndex(position: Int) {
+    private fun readItemAtIndex(position: Int, showSnackbar: Boolean = true) {
         val i = items[position]
         CoroutineScope(Dispatchers.IO).launch {
-            // Todo: SharedItems.readItem(app, api, db, i)
+            api.markAsRead(i.id.toString())
+            // TODO: update db
+
         }
         // Todo:
 //        if (SharedItems.displayedItems == "unread") {
@@ -109,15 +94,22 @@ abstract class ItemsAdapter<VH : RecyclerView.ViewHolder?> : RecyclerView.Adapte
 //        } else {
 //            notifyItemChanged(position)
 //        }
-        unmarkSnackbar(i, position)
+        if (showSnackbar) {
+            unmarkSnackbar(i, position)
+        }
     }
 
-    private fun unreadItemAtIndex(position: Int) {
+    private fun unreadItemAtIndex(position: Int, showSnackbar: Boolean = true) {
         CoroutineScope(Dispatchers.IO).launch {
+            api.unmarkAsRead(items[position].id.toString())
             // Todo: SharedItems.unreadItem(app, api, db, items[position])
+            // TODO: update db
+
         }
         notifyItemChanged(position)
-        markSnackbar(position)
+        if (showSnackbar) {
+            markSnackbar(position)
+        }
     }
 
     fun addItemAtIndex(item: SelfossModel.Item, position: Int) {

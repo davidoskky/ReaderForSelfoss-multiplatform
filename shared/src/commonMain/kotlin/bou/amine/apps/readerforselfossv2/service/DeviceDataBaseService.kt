@@ -27,8 +27,8 @@ abstract class DeviceDataBaseService<ItemEntity>(val db: DeviceDatabase<ItemEnti
     // This filtered items from items val. Do not use
     fun getFocusedItems() {}
     fun computeBadges() {
-        searchService.badgeUnread = items.filter { item -> item.unread == 1 }.size
-        searchService.badgeStarred = items.filter { item -> item.starred == 1 }.size
+        searchService.badgeUnread = items.filter { item -> item.unread }.size
+        searchService.badgeStarred = items.filter { item -> item.starred }.size
         searchService.badgeAll = items.size
     }
 }

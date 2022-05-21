@@ -21,10 +21,6 @@ class SearchService(val dateUtils: DateUtils) {
     var tagFilter: String? = null
     var itemsCaching = false
 
-    var fetchedUnread = false
-    var fetchedAll = false
-    var fetchedStarred = false
-
     var badgeUnread = -1
     var badgeAll = -1
     var badgeStarred = -1

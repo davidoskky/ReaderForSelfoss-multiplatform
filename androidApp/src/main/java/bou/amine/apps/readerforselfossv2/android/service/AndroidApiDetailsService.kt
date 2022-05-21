@@ -8,40 +8,41 @@ import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
 
 class AndroidApiDetailsService(c: Context) : ApiDetailsService {
     val settings: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(c)
-    private var apiVersion: Int = -1
-    private var baseUrl: String = ""
-    private var userName: String = ""
-    private var password: String = ""
+    private var _apiVersion: Int = -1
+    private var _baseUrl: String = ""
+    private var _userName: String = ""
+    private var _password: String = ""
     override fun logApiCalls(message: String) {
         Log.d("LogApiCalls", message)
     }
 
 
     override fun getApiVersion(): Int {
-        if (apiVersion != -1) {
-            apiVersion = settings.getInt("apiVersion", -1)!!
+        if (_apiVersion == -1) {
+            _apiVersion = settings.getInt("apiVersionMajor", -1)!!
+            return settings.getInt("apiVersionMajor", -1)!!
         }
-        return apiVersion
+        return _apiVersion
     }
 
     override fun getBaseUrl(): String {
-        if (baseUrl.isEmpty()) {
-            baseUrl = settings.getString("url", "")!!
+        if (_baseUrl.isEmpty()) {
+            _baseUrl = settings.getString("url", "")!!
         }
-        return baseUrl
+        return _baseUrl
     }
 
     override fun getUserName(): String {
-        if (userName.isEmpty()) {
-            userName = settings.getString("login", "")!!
+        if (_userName.isEmpty()) {
+            _userName = settings.getString("login", "")!!
         }
-        return userName
+        return _userName
     }
 
     override fun getPassword(): String {
-        if (password.isEmpty()) {
-            password = settings.getString("password", "")!!
+        if (_password.isEmpty()) {
+            _password = settings.getString("password", "")!!
         }
-        return password
+        return _password
     }
 }

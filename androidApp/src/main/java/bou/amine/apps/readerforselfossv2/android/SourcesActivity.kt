@@ -80,7 +80,7 @@ class SourcesActivity : AppCompatActivity() {
         binding.recyclerView.layoutManager = mLayoutManager
 
         if (this@SourcesActivity.isNetworkAvailable(binding.recyclerView)) {
-            CoroutineScope(Dispatchers.IO).launch {
+            CoroutineScope(Dispatchers.Main).launch {
                 val response = api.sources()
                 if (response != null) {
                     items = response

@@ -111,7 +111,9 @@ class ArticleFragment : Fragment() {
 
         service = SelfossService(SelfossApi(apiDetailsService), dbService, SearchService(DateUtils(apiDetailsService)))
 
-        item = requireArguments().getParcelable(ARG_ITEMS)!!
+        val pi: ParecelableItem = requireArguments().getParcelable(ARG_ITEMS)!!
+
+        item = pi.toModel()
 
         db = Room.databaseBuilder(
             requireContext(),
@@ -187,17 +189,12 @@ class ArticleFragment : Fragment() {
                             R.id.share_action -> requireActivity().shareLink(url, contentTitle)
                             R.id.open_action -> requireActivity().openInBrowserAsNewTask(this@ArticleFragment.item)
                             R.id.unread_action -> if (context != null) {
-                                if (this@ArticleFragment.item.unread == 1) {
+                                if (this@ArticleFragment.item.unread) {
                                     CoroutineScope(Dispatchers.IO).launch {
-                                        // TODO:
-//                                        dbService.readItem(
-//                                            context!!,
-//                                            api,
-//                                            db,
-//                                            this@ArticleFragment.item
-//                                        )
+                                        api.markAsRead(this@ArticleFragment.item.id.toString())
+                                        // TODO: Update in DB
                                     }
-                                    this@ArticleFragment.item.unread = 0
+                                    this@ArticleFragment.item.unread = false
                                     Toast.makeText(
                                         context,
                                         R.string.marked_as_read,
@@ -205,15 +202,10 @@ class ArticleFragment : Fragment() {
                                     ).show()
                                 } else {
                                     CoroutineScope(Dispatchers.IO).launch {
-                                        // TODO
-//                                        .unreadItem(
-//                                            context!!,
-//                                            api,
-//                                            db,
-//                                            this@ArticleFragment.item
-//                                        )
+                                        api.unmarkAsRead(this@ArticleFragment.item.id.toString())
+                                        // TODO: Update in DB
                                     }
-                                    this@ArticleFragment.item.unread = 1
+                                    this@ArticleFragment.item.unread = true
                                     Toast.makeText(
                                         context,
                                         R.string.marked_as_unread,

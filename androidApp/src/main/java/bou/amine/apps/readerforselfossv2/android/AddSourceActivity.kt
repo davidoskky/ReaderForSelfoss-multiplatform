@@ -133,7 +133,7 @@ class AddSourceActivity : AppCompatActivity() {
         }
 
 
-        CoroutineScope(Dispatchers.IO).launch {
+        CoroutineScope(Dispatchers.Main).launch {
             var items = api!!.spouts()
             if (items != null) {
 
@@ -192,7 +192,7 @@ class AddSourceActivity : AppCompatActivity() {
                 Toast.makeText(this, R.string.form_not_complete, Toast.LENGTH_SHORT).show()
             }
             else -> {
-                CoroutineScope(Dispatchers.IO).launch {
+                CoroutineScope(Dispatchers.Main).launch {
                     val response: SelfossModel.SuccessResponse? = api.createSourceForVersion(
                             title,
                             url,

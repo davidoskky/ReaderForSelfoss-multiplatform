@@ -235,7 +235,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
             lastFetchDone = false
             handleDrawerItems()
             CoroutineScope(Dispatchers.Main).launch {
-                service.refreshFocusedItems(itemsNumber, applicationContext.isNetworkAvailable())
                 getElementsAccordingToTab()
                 binding.swipeRefreshLayout.isRefreshing = false
             }
@@ -276,7 +275,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
 
                         reloadBadgeContent()
 
-                        val tagHashes = i.tags.split(",").map { it.longHash() }
+                        val tagHashes = i.tags.map { it.longHash() }
                         tagsBadge = tagsBadge.map {
                             if (tagHashes.contains(it.key)) {
                                 (it.key to (it.value - 1))
@@ -868,9 +867,8 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
             override fun onTabUnselected(position: Int) = Unit
 
             override fun onTabReselected(position: Int) {
-                val layoutManager = binding.recyclerView.adapter
 
-                when (layoutManager) {
+                when (val layoutManager = binding.recyclerView.adapter) {
                     is StaggeredGridLayoutManager ->
                         if (layoutManager.findFirstCompletelyVisibleItemPositions(null)[0] == 0) {
                             getElementsAccordingToTab()
@@ -902,10 +900,8 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
 
     private fun fetchOnEmptyList() {
         binding.recyclerView.doOnNextLayout {
-            // Todo:
-//            if (SharedItems.focusedItems.size - 1 == getLastVisibleItem()) {
-//                getElementsAccordingToTab(true)
-//            }
+            // TODO: do if last element (or is empty ?)
+            getElementsAccordingToTab(true)
         }
     }
 
@@ -927,8 +923,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
     }
 
     private fun getLastVisibleItem() : Int {
-        val manager = binding.recyclerView.layoutManager
-        return when (manager) {
+        return when (val manager = binding.recyclerView.layoutManager) {
             is StaggeredGridLayoutManager -> manager.findLastCompletelyVisibleItemPositions(
                 null
             ).last()
@@ -945,8 +940,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
         }
 
     private fun getElementsAccordingToTab(
-        appendResults: Boolean = false,
-        offsetOverride: Int? = null
+        appendResults: Boolean = false
     ) {
         fun doGetAccordingToTab() {
             when (elementsShown) {
@@ -957,12 +951,11 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
             }
         }
 
-        // Todo:
-//        offset = if (appendResults) {
-//            SharedItems.focusedItems.size - 1
-//        } else {
-//            0
-//        }
+        offset = if (appendResults && items.size > 0) {
+            items.size - 1
+        } else {
+            0
+        }
         firstVisible = if (appendResults) firstVisible else 0
 
         doGetAccordingToTab()
@@ -970,41 +963,42 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
 
     private fun getUnRead(appendResults: Boolean = false) {
         CoroutineScope(Dispatchers.Main).launch {
-            // Todo:
-//            if (appendResults || !SharedItems.fetchedUnread) {
-//                binding.swipeRefreshLayout.isRefreshing = true
-//                service.getUnreadItems(itemsNumber, offset, applicationContext.isNetworkAvailable())
-//                binding.swipeRefreshLayout.isRefreshing = false
-//            }
-            // Todo: SharedItems.getUnRead()
-            // Todo: items = SharedItems.focusedItems
+            binding.swipeRefreshLayout.isRefreshing = true
+            val apiItems = service.getUnreadItems(itemsNumber, offset, applicationContext.isNetworkAvailable())
+            if (appendResults) {
+                apiItems?.let { items.addAll(it) }
+            } else {
+                items = apiItems.orEmpty() as ArrayList<SelfossModel.Item>
+            }
+            binding.swipeRefreshLayout.isRefreshing = false
             handleListResult()
         }
     }
 
     private fun getRead(appendResults: Boolean = false) {
         CoroutineScope(Dispatchers.Main).launch {
-            // Todo:
-//            if (appendResults || !SharedItems.fetchedAll) {
-//                binding.swipeRefreshLayout.isRefreshing = true
-//                service.getReadItems(itemsNumber, offset, applicationContext.isNetworkAvailable())
-//                binding.swipeRefreshLayout.isRefreshing = false
-//            }
-//            SharedItems.getAll()
-//            items = SharedItems.focusedItems
+            binding.swipeRefreshLayout.isRefreshing = true
+            val apiItems = service.getReadItems(itemsNumber, offset, applicationContext.isNetworkAvailable())
+            if (appendResults) {
+                apiItems?.let { items.addAll(it) }
+            } else {
+                items = apiItems.orEmpty() as ArrayList<SelfossModel.Item>
+            }
+            binding.swipeRefreshLayout.isRefreshing = false
             handleListResult()
         }
     }
 
     private fun getStarred(appendResults: Boolean = false) {
         CoroutineScope(Dispatchers.Main).launch {
-            if (appendResults || !searchService.fetchedStarred) {
-                binding.swipeRefreshLayout.isRefreshing = true
-                service.getStarredItems(itemsNumber, offset, applicationContext.isNetworkAvailable())
-                binding.swipeRefreshLayout.isRefreshing = false
+            binding.swipeRefreshLayout.isRefreshing = true
+            val apiItems = service.getStarredItems(itemsNumber, offset, applicationContext.isNetworkAvailable())
+            if (appendResults) {
+                apiItems?.let { items.addAll(it) }
+            } else {
+                items = apiItems.orEmpty() as ArrayList<SelfossModel.Item>
             }
-            // Todo: SharedItems.getStarred()
-            // Todo: items = SharedItems.focusedItems
+            binding.swipeRefreshLayout.isRefreshing = false
             handleListResult()
         }
     }
@@ -1069,7 +1063,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
             }
             binding.recyclerView.adapter = recyclerAdapter
         } else {
-                (recyclerAdapter as ItemsAdapter<*>).updateAllItems()
+                (recyclerAdapter as ItemsAdapter<*>).updateAllItems(items)
         }
 
         reloadBadges()
@@ -1186,7 +1180,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
 
                         if (this@HomeActivity.isNetworkAvailable(null, offlineShortcut)) {
                             CoroutineScope(Dispatchers.Main).launch {
-                                val success = service.readAll(applicationContext.isNetworkAvailable())
+                                val success = service.readAll(items.map { it.id.toString() }, applicationContext.isNetworkAvailable())
                                 if (success) {
                                     Toast.makeText(
                                         this@HomeActivity,

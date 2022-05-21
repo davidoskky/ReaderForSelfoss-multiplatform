@@ -130,7 +130,8 @@ class ReaderActivity : AppCompatActivity() {
     private fun readItem(item: SelfossModel.Item) {
         if (markOnScroll) {
                 CoroutineScope(Dispatchers.IO).launch {
-                    // Todo: SharedItems.readItem(applicationContext, api, db, item)
+                    api.markAsRead(item.id.toString())
+                    // TODO: update item in DB
                 }
             }
     }
@@ -177,7 +178,7 @@ class ReaderActivity : AppCompatActivity() {
         inflater.inflate(R.menu.reader_menu, menu)
         toolbarMenu = menu
 
-        if (allItems.isNotEmpty() && allItems[currentItem].starred == 1) {
+        if (allItems.isNotEmpty() && allItems[currentItem].starred) {
             canRemoveFromFavorite()
         } else {
             canFavorite()
@@ -194,7 +195,7 @@ class ReaderActivity : AppCompatActivity() {
                     override fun onPageSelected(position: Int) {
                         super.onPageSelected(position)
 
-                        if (allItems[position].starred == 1) {
+                        if (allItems[position].starred) {
                             canRemoveFromFavorite()
                         } else {
                             canFavorite()
@@ -225,26 +226,16 @@ class ReaderActivity : AppCompatActivity() {
                 return true
             }
             R.id.star -> {
-                if (allItems[binding.pager.currentItem].starred == 1) {
+                if (allItems[binding.pager.currentItem].starred) {
                     CoroutineScope(Dispatchers.IO).launch {
-                        // Todo:
-//                        SharedItems.unstarItem(
-//                            this@ReaderActivity,
-//                            api,
-//                            db,
-//                            allItems[binding.pager.currentItem]
-//                        )
+                        api.unstarr(allItems[binding.pager.currentItem].id.toString())
+                        // TODO: update in DB
                     }
                     afterUnsave()
                 } else {
                     CoroutineScope(Dispatchers.IO).launch {
-                        // Todo:
-//                        SharedItems.starItem(
-//                            this@ReaderActivity,
-//                            api,
-//                            db,
-//                            allItems[binding.pager.currentItem]
-//                        )
+                        api.starr(allItems[binding.pager.currentItem].id.toString())
+                        // TODO: update in DB
                     }
                     afterSave()
                 }

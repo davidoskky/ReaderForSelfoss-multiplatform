@@ -23,11 +23,11 @@ class AndroidDeviceDatabaseService(db: AndroidDeviceDatabase, searchService: Sea
     }
 
     override fun appendNewItems(newItems: List<SelfossModel.Item>) {
-        var tmpItems = items
-        if (tmpItems != newItems) {
-            tmpItems = tmpItems.filter { item -> newItems.find { it.id == item.id } == null } as ArrayList<SelfossModel.Item>
-            tmpItems.addAll(newItems)
-            items = tmpItems
+        var oldItems = items
+        if (oldItems != newItems) {
+            oldItems = oldItems.filter { item -> newItems.find { it.id == item.id } == null } as ArrayList<SelfossModel.Item>
+            oldItems.addAll(newItems)
+            items = oldItems
 
             sortItems()
             getFocusedItems()

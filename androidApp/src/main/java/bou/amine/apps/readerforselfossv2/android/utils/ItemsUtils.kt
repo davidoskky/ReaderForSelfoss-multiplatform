@@ -24,15 +24,6 @@ fun SelfossModel.Item.sourceAndDateText(dateUtils: DateUtils): String {
 }
 
 fun SelfossModel.Item.toggleStar(): SelfossModel.Item {
-    this.starred = if (this.starred == 0) 1 else 0
+    this.starred = !this.starred
     return this
 }
-
-fun List<SelfossModel.Item>.flattenTags(): List<SelfossModel.Item> =
-    this.flatMap {
-        val item = it
-        val tags: List<String> = it.tags.split(",")
-        tags.map { t ->
-            item.copy(tags = t.trim())
-        }
-    }

@@ -52,7 +52,7 @@ class SelfossModel {
 
     @Serializable
     data class Source(
-        val id: String,
+        val id: Int,
         val title: String,
         val tags: List<String>,
         val spout: String,
@@ -62,16 +62,16 @@ class SelfossModel {
 
     @Serializable
     data class Item(
-        val id: String,
+        val id: Int,
         val datetime: String,
         val title: String,
         val content: String,
-        var unread: Int,
-        var starred: Int,
+        var unread: Boolean,
+        var starred: Boolean,
         val thumbnail: String?,
         val icon: String?,
         val link: String,
         val sourcetitle: String,
-        val tags: String
+        val tags: List<String>
     )
 }
