@@ -31,7 +31,7 @@ fun SelfossModel.Source.toEntity(): SourceEntity =
             this.tags.joinToString(","),
             this.spout,
             this.error,
-            this.icon
+            this.icon.orEmpty()
         )
 
 fun SelfossModel.Tag.toEntity(): TagEntity =

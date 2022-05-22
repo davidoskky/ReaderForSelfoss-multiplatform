@@ -57,7 +57,7 @@ class SelfossModel {
         val tags: List<String>,
         val spout: String,
         val error: String,
-        val icon: String
+        val icon: String?
     )
 
     @Serializable

@@ -159,9 +159,9 @@ class SelfossApi(private val apiDetailsService: ApiDetailsService) {
         version: Int
     ): SelfossModel.SuccessResponse? =
         if (version > 1) {
-            createSource(title, url, spout, tags, filter)
-        } else {
             createSource2(title, url, spout, tags, filter)
+        } else {
+            createSource(title, url, spout, tags, filter)
         }
 
     private suspend fun createSource(
@@ -171,15 +171,16 @@ class SelfossApi(private val apiDetailsService: ApiDetailsService) {
         tags: String,
         filter: String
     ): SelfossModel.SuccessResponse? =
-        client.post(url("/source")) {
-            parameter("username", apiDetailsService.getUserName())
-            parameter("password", apiDetailsService.getPassword())
-            parameter("title", title)
-            parameter("url", url)
-            parameter("spout", spout)
-            parameter("tags", tags)
-            parameter("filter", filter)
-        }.body()
+        client.submitForm(
+            url = url("/source?username=${apiDetailsService.getUserName()}&password=${apiDetailsService.getPassword()}"),
+            formParameters = Parameters.build {
+                append("title", title)
+                append("url", url)
+                append("spout", spout)
+                append("tags", tags)
+                append("filter", filter)
+            }
+        ).body()
 
     private suspend fun createSource2(
         title: String,
@@ -188,15 +189,16 @@ class SelfossApi(private val apiDetailsService: ApiDetailsService) {
         tags: String,
         filter: String
     ): SelfossModel.SuccessResponse? =
-        client.post(url("/source")) {
-            parameter("username", apiDetailsService.getUserName())
-            parameter("password", apiDetailsService.getPassword())
-            parameter("title", title)
-            parameter("url", url)
-            parameter("spout", spout)
-            parameter("tags[]", tags)
-            parameter("filter", filter)
-        }.body()
+        client.submitForm(
+            url = url("/source?username=${apiDetailsService.getUserName()}&password=${apiDetailsService.getPassword()}"),
+            formParameters = Parameters.build {
+                append("title", title)
+                append("url", url)
+                append("spout", spout)
+                append("tags[]", tags)
+                append("filter", filter)
+            }
+        ).body()
 
     suspend fun deleteSource(id: Int): SelfossModel.SuccessResponse? =
         client.delete(url("/source/$id")) {
