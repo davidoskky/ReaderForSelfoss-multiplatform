@@ -2,11 +2,7 @@
 
 [![Crowdin](https://d322cqt584bo4o.cloudfront.net/readerforselfoss/localized.svg)](https://crowdin.com/project/readerforselfoss)
 
-It's an RSS Reader for Android, that **only** works with [Selfoss](https://selfoss.aditu.de/)
-
-**The project is not dead at all.**
-
-I still want to work on it, but for the last few months, I didn't have that much time to do so.
+It's an RSS Reader for Android and IOS, that **only** works with [Selfoss](https://selfoss.aditu.de/)
 
 If you are a developer, don't hesitate to help with PRs.
 
@@ -26,18 +22,18 @@ If you are a user, you can still create new issues. I'll fix them when I can.
 
 1. **You'll have to have a Selfoss instance running.** You'll find everything you need to install it [here](https://selfoss.aditu.de/).
 
-2. Check the [Contribution guide](https://github.com/aminecmi/ReaderforSelfoss/blob/master/.github/CONTRIBUTING.md).
+2. Check the [Contribution guide](https://github.com/aminecmi/ReaderforSelfoss-multiplatform/blob/master/.github/CONTRIBUTING.md).
 
-3. Build the project by following [these steps](https://github.com/aminecmi/ReaderforSelfoss/blob/master/.github/CONTRIBUTING.md#build-the-project) (you should have read them after the contribution guide)
+3. Build the project by following [these steps](https://github.com/aminecmi/ReaderforSelfoss-multiplatform/blob/master/.github/CONTRIBUTING.md#build-the-project) (you should have read them after the contribution guide)
 
 ## Useful links
 
-- [Check what changed](https://github.com/aminecmi/ReaderforSelfoss/blob/master/CHANGELOG.md)
-- [See what I'm doing](https://github.com/aminecmi/ReaderforSelfoss/projects/1)
-- [Create an issue, or request a new feature](https://github.com/aminecmi/ReaderforSelfoss/issues)
+- [Check what changed](https://github.com/aminecmi/ReaderforSelfoss-multiplatform/blob/master/CHANGELOG.md)
+- [See what I'm doing](https://github.com/aminecmi/ReaderforSelfoss-multiplatform/projects/1)
+- [Create an issue, or request a new feature](https://github.com/aminecmi/ReaderforSelfoss-multiplatform/issues)
 - [Help translation the app](https://crowdin.com/project/readerforselfoss)
 
-## Contributors (Alphabetical order) ❤️
+## Contributors (V1) (Alphabetical order) ❤️
 
 - [@aancel](https://github.com/aancel)
 - [@Binnette](https://github.com/Binnette)
