@@ -165,5 +165,5 @@
     <string name="reader_static_bar_title">Barre statique pour le visionneur d\'articles</string>
     <string name="reader_static_bar_on">La barre sera affichée</string>
     <string name="reader_static_bar_off">La barre sera affichée grâce au bouton</string>
-    <string name="remove_source">Remove source</string>
+    <string name="remove_source">Supprimer la source</string>
 </resources>
