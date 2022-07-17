@@ -9,16 +9,26 @@ import android.os.Build
 import androidx.preference.PreferenceManager
 import android.widget.ImageView
 import androidx.multidex.MultiDexApplication
+import bou.amine.apps.readerforselfossv2.android.service.AndroidApiDetailsService
 import bou.amine.apps.readerforselfossv2.android.utils.Config
 import bou.amine.apps.readerforselfossv2.android.utils.glide.loadMaybeBasicAuth
+import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
 import com.ftinc.scoop.Scoop
 import com.mikepenz.materialdrawer.util.AbstractDrawerImageLoader
 import com.mikepenz.materialdrawer.util.DrawerImageLoader
+import org.kodein.di.*
 import java.util.UUID.randomUUID
 
-class MyApp : MultiDexApplication() {
+class MyApp : MultiDexApplication(), DIAware {
+
+    override val di by DI.lazy {
+        bind<Context>() with instance(this@MyApp.applicationContext)
+
+        bind<ApiDetailsService>() with singleton { AndroidApiDetailsService(instance()) }
+    }
+
     private lateinit var config: Config
 
     override fun onCreate() {

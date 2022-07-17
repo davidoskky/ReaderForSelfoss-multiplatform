@@ -3,10 +3,6 @@ package bou.amine.apps.readerforselfossv2.rest
 import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
 import io.ktor.client.*
 import io.ktor.client.call.*
-import io.ktor.client.engine.*
-import io.ktor.client.engine.ProxyBuilder.http
-import io.ktor.client.plugins.auth.*
-import io.ktor.client.plugins.auth.providers.*
 import io.ktor.client.plugins.cache.*
 import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
@@ -16,9 +12,59 @@ import io.ktor.client.plugins.logging.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
 
-class SelfossApi(private val apiDetailsService: ApiDetailsService) {
+interface SelfossApi {
+    val client: HttpClient
+    fun url(path: String): String
 
-    private val client = HttpClient() {
+    suspend fun login(): SelfossModel.SuccessResponse?
+
+    suspend fun getItems(
+        type: String,
+        items: Int,
+        offset: Int,
+        tag: String? = "",
+        source: Long? = null,
+        search: String? = "",
+        updatedSince: String? = ""
+    ): List<SelfossModel.Item>?
+
+    suspend fun stats(): SelfossModel.Stats?
+
+    suspend fun tags(): List<SelfossModel.Tag>?
+
+    suspend fun update(): SelfossModel.SuccessResponse?
+
+    suspend fun spouts(): Map<String, SelfossModel.Spout>?
+
+    suspend fun sources(): ArrayList<SelfossModel.Source>?
+
+    suspend fun version(): SelfossModel.ApiVersion?
+
+    suspend fun markAsRead(id: String): SelfossModel.SuccessResponse?
+
+    suspend fun unmarkAsRead(id: String): SelfossModel.SuccessResponse?
+
+    suspend fun starr(id: String): SelfossModel.SuccessResponse?
+
+    suspend fun unstarr(id: String): SelfossModel.SuccessResponse?
+
+    suspend fun markAllAsRead(ids: List<String>): SelfossModel.SuccessResponse?
+
+    suspend fun createSourceForVersion(
+        title: String,
+        url: String,
+        spout: String,
+        tags: String,
+        filter: String,
+        version: Int
+    ): SelfossModel.SuccessResponse?
+
+    suspend fun deleteSource(id: Int): SelfossModel.SuccessResponse?
+}
+
+class SelfossApiImpl(private val apiDetailsService: ApiDetailsService) : SelfossApi {
+
+    override val client = HttpClient() {
         install(ContentNegotiation) {
             install(HttpCache)
             json(Json {
@@ -52,24 +98,24 @@ class SelfossApi(private val apiDetailsService: ApiDetailsService) {
         expectSuccess = false
     }
 
-    private fun url(path: String) =
+    override fun url(path: String) =
         "${apiDetailsService.getBaseUrl()}$path"
 
 
-    suspend fun login(): SelfossModel.SuccessResponse? =
+    override suspend fun login(): SelfossModel.SuccessResponse? =
         client.get(url("/login")) {
             parameter("username", apiDetailsService.getUserName())
             parameter("password", apiDetailsService.getPassword())
         }.body()
 
-    suspend fun getItems(
+    override suspend fun getItems(
         type: String,
         items: Int,
         offset: Int,
-        tag: String? = "",
-        source: Long? = null,
-        search: String? = "",
-        updatedSince: String? = ""
+        tag: String?,
+        source: Long?,
+        search: String?,
+        updatedSince: String?
     ): List<SelfossModel.Item>? =
         client.get(url("/items")) {
                 parameter("username", apiDetailsService.getUserName())
@@ -83,64 +129,64 @@ class SelfossApi(private val apiDetailsService: ApiDetailsService) {
                 parameter("offset", offset)
             }.body()
 
-    suspend fun stats(): SelfossModel.Stats? =
+    override suspend fun stats(): SelfossModel.Stats? =
         client.get(url("/stats")) {
                 parameter("username", apiDetailsService.getUserName())
                 parameter("password", apiDetailsService.getPassword())
             }.body()
 
-    suspend fun tags(): List<SelfossModel.Tag>? =
+    override suspend fun tags(): List<SelfossModel.Tag>? =
         client.get(url("/tags")) {
                 parameter("username", apiDetailsService.getUserName())
                 parameter("password", apiDetailsService.getPassword())
             }.body()
 
-    suspend fun update(): SelfossModel.SuccessResponse? =
+    override suspend fun update(): SelfossModel.SuccessResponse? =
         client.get(url("/update")) {
                 parameter("username", apiDetailsService.getUserName())
                 parameter("password", apiDetailsService.getPassword())
             }.body()
 
-    suspend fun spouts(): Map<String, SelfossModel.Spout>? =
+    override suspend fun spouts(): Map<String, SelfossModel.Spout>? =
         client.get(url("/sources/spouts")) {
                 parameter("username", apiDetailsService.getUserName())
                 parameter("password", apiDetailsService.getPassword())
             }.body()
 
-    suspend fun sources(): ArrayList<SelfossModel.Source>? =
+    override suspend fun sources(): ArrayList<SelfossModel.Source>? =
         client.get(url("/sources/list")) {
                 parameter("username", apiDetailsService.getUserName())
                 parameter("password", apiDetailsService.getPassword())
             }.body()
 
-    suspend fun version(): SelfossModel.ApiVersion? =
+    override suspend fun version(): SelfossModel.ApiVersion? =
         client.get(url("/api/about")).body()
 
-    suspend fun markAsRead(id: String): SelfossModel.SuccessResponse? =
+    override suspend fun markAsRead(id: String): SelfossModel.SuccessResponse? =
         client.post(url("/mark/$id")) {
             parameter("username", apiDetailsService.getUserName())
             parameter("password", apiDetailsService.getPassword())
         }.body()
 
-    suspend fun unmarkAsRead(id: String): SelfossModel.SuccessResponse? =
+    override suspend fun unmarkAsRead(id: String): SelfossModel.SuccessResponse? =
         client.post(url("/unmark/$id")) {
             parameter("username", apiDetailsService.getUserName())
             parameter("password", apiDetailsService.getPassword())
         }.body()
 
-    suspend fun starr(id: String): SelfossModel.SuccessResponse? =
+    override suspend fun starr(id: String): SelfossModel.SuccessResponse? =
         client.post(url("/starr/$id")) {
             parameter("username", apiDetailsService.getUserName())
             parameter("password", apiDetailsService.getPassword())
         }.body()
 
-    suspend fun unstarr(id: String): SelfossModel.SuccessResponse? =
+    override suspend fun unstarr(id: String): SelfossModel.SuccessResponse? =
         client.post(url("/unstarr/$id")) {
             parameter("username", apiDetailsService.getUserName())
             parameter("password", apiDetailsService.getPassword())
         }.body()
 
-    suspend fun markAllAsRead(ids: List<String>): SelfossModel.SuccessResponse? =
+    override suspend fun markAllAsRead(ids: List<String>): SelfossModel.SuccessResponse? =
         client.submitForm(
             url = url("/mark"),
             formParameters = Parameters.build {
@@ -150,7 +196,7 @@ class SelfossApi(private val apiDetailsService: ApiDetailsService) {
             }
         ).body()
 
-    suspend fun createSourceForVersion(
+    override suspend fun createSourceForVersion(
         title: String,
         url: String,
         spout: String,
@@ -164,7 +210,7 @@ class SelfossApi(private val apiDetailsService: ApiDetailsService) {
             createSource(title, url, spout, tags, filter)
         }
 
-    private suspend fun createSource(
+    suspend fun createSource(
         title: String,
         url: String,
         spout: String,
@@ -182,7 +228,7 @@ class SelfossApi(private val apiDetailsService: ApiDetailsService) {
             }
         ).body()
 
-    private suspend fun createSource2(
+    suspend fun createSource2(
         title: String,
         url: String,
         spout: String,
@@ -200,7 +246,7 @@ class SelfossApi(private val apiDetailsService: ApiDetailsService) {
             }
         ).body()
 
-    suspend fun deleteSource(id: Int): SelfossModel.SuccessResponse? =
+    override suspend fun deleteSource(id: Int): SelfossModel.SuccessResponse? =
         client.delete(url("/source/$id")) {
                 parameter("username", apiDetailsService.getUserName())
                 parameter("password", apiDetailsService.getPassword())

@@ -15,24 +15,19 @@ import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.TextView
 import androidx.preference.PreferenceManager
-import androidx.work.Logger
 import bou.amine.apps.readerforselfossv2.android.databinding.ActivityLoginBinding
-import bou.amine.apps.readerforselfossv2.android.service.AndroidApiDetailsService
 import bou.amine.apps.readerforselfossv2.android.themes.AppColors
-import bou.amine.apps.readerforselfossv2.android.utils.Config
 import bou.amine.apps.readerforselfossv2.android.utils.isBaseUrlValid
 import bou.amine.apps.readerforselfossv2.android.utils.network.isNetworkAvailable
-import bou.amine.apps.readerforselfossv2.rest.SelfossApi
+import bou.amine.apps.readerforselfossv2.rest.SelfossApiImpl
 import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
 import com.mikepenz.aboutlibraries.LibsBuilder
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
+import org.kodein.di.*
 
-class LoginActivity : AppCompatActivity() {
+class LoginActivity() : AppCompatActivity(), DIAware {
 
     private var inValidCount: Int = 0
     private var isWithSelfSignedCert = false
@@ -44,6 +39,10 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var userIdentifier: String
     private lateinit var appColors: AppColors
     private lateinit var binding: ActivityLoginBinding
+
+    override val diContext: DIContext<*> = diContext(this)
+    override val di by lazy { (application as MyApp).di }
+    private val apiDetailsService : ApiDetailsService by instance()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         appColors = AppColors(this@LoginActivity)
@@ -139,7 +138,6 @@ class LoginActivity : AppCompatActivity() {
         binding.passwordView.error = getString(R.string.wrong_infos)
         binding.httpLoginView.error = getString(R.string.wrong_infos)
         binding.httpPasswordView.error = getString(R.string.wrong_infos)
-        showProgress(false)
     }
 
     private fun attemptLogin() {
@@ -219,9 +217,9 @@ class LoginActivity : AppCompatActivity() {
             editor.putString("httpPassword", httpPassword)
             editor.putBoolean("isSelfSignedCert", isWithSelfSignedCert)
             editor.apply()
+            apiDetailsService.refresh()
 
-            val apiDetailsService = AndroidApiDetailsService(this@LoginActivity)
-            val api = SelfossApi(
+            val api = SelfossApiImpl(
 //                this,
 //                this@LoginActivity,
 //                isWithSelfSignedCert,
@@ -236,15 +234,17 @@ class LoginActivity : AppCompatActivity() {
                         if (result != null && result.isSuccess) {
                             goToMain()
                         } else {
-                            preferenceError(Exception("Not success"))
+                            CoroutineScope(Dispatchers.Main).launch {
+                                preferenceError(Exception("Not success"))
+                            }
                         }
                     } catch (cause: Throwable) {
-                        Log.e("1", "LOL")
+                        Log.e("1", cause.message!!)
+                        Log.e("1", cause.stackTraceToString())
                     }
                 }
-            } else {
-                showProgress(false)
             }
+            showProgress(false)
         }
     }
 

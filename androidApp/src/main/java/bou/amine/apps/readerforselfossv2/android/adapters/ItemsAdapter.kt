@@ -8,7 +8,7 @@ import bou.amine.apps.readerforselfossv2.android.R
 import bou.amine.apps.readerforselfossv2.android.persistence.database.AppDatabase
 import bou.amine.apps.readerforselfossv2.android.themes.AppColors
 import bou.amine.apps.readerforselfossv2.android.utils.Config
-import bou.amine.apps.readerforselfossv2.rest.SelfossApi
+import bou.amine.apps.readerforselfossv2.rest.SelfossApiImpl
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
 import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
 import bou.amine.apps.readerforselfossv2.service.SearchService
@@ -19,7 +19,7 @@ import kotlinx.coroutines.launch
 
 abstract class ItemsAdapter<VH : RecyclerView.ViewHolder?> : RecyclerView.Adapter<VH>() {
     abstract var items: ArrayList<SelfossModel.Item>
-    abstract val api: SelfossApi
+    abstract val api: SelfossApiImpl
     abstract val apiDetailsService: ApiDetailsService
     abstract val db: AppDatabase
     abstract val userIdentifier: String

@@ -19,8 +19,8 @@ class AndroidApiDetailsService(c: Context) : ApiDetailsService {
 
     override fun getApiVersion(): Int {
         if (_apiVersion == -1) {
-            _apiVersion = settings.getInt("apiVersionMajor", -1)!!
-            return settings.getInt("apiVersionMajor", -1)!!
+            _apiVersion = settings.getInt("apiVersionMajor", -1)
+            return _apiVersion
         }
         return _apiVersion
     }
@@ -44,5 +44,13 @@ class AndroidApiDetailsService(c: Context) : ApiDetailsService {
             _password = settings.getString("password", "")!!
         }
         return _password
+    }
+
+    override fun refresh() {
+        _password = settings.getString("password", "")!!
+        _userName = settings.getString("login", "")!!
+        _baseUrl = settings.getString("url", "")!!
+        _baseUrl = settings.getString("url", "")!!
+        _apiVersion = settings.getInt("apiVersionMajor", -1)
     }
 }

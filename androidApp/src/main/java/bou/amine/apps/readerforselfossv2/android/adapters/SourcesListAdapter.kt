@@ -16,7 +16,7 @@ import bou.amine.apps.readerforselfossv2.android.utils.Config
 import bou.amine.apps.readerforselfossv2.android.utils.glide.circularBitmapDrawable
 import bou.amine.apps.readerforselfossv2.android.utils.network.isNetworkAvailable
 import bou.amine.apps.readerforselfossv2.android.utils.toTextDrawableString
-import bou.amine.apps.readerforselfossv2.rest.SelfossApi
+import bou.amine.apps.readerforselfossv2.rest.SelfossApiImpl
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
 import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
 import com.amulyakhare.textdrawable.TextDrawable
@@ -28,7 +28,7 @@ import kotlinx.coroutines.launch
 class SourcesListAdapter(
     private val app: Activity,
     private val items: ArrayList<SelfossModel.Source>,
-    private val api: SelfossApi,
+    private val api: SelfossApiImpl,
     private val apiDetailsService: ApiDetailsService
 ) : RecyclerView.Adapter<SourcesListAdapter.ViewHolder>() {
     private val c: Context = app.baseContext

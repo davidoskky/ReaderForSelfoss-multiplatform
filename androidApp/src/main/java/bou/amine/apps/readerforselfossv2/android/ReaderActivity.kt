@@ -25,7 +25,7 @@ import bou.amine.apps.readerforselfossv2.android.themes.AppColors
 import bou.amine.apps.readerforselfossv2.android.themes.Toppings
 import bou.amine.apps.readerforselfossv2.android.utils.Config
 import bou.amine.apps.readerforselfossv2.android.utils.toggleStar
-import bou.amine.apps.readerforselfossv2.rest.SelfossApi
+import bou.amine.apps.readerforselfossv2.rest.SelfossApiImpl
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
 import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
 import com.ftinc.scoop.Scoop
@@ -40,7 +40,7 @@ class ReaderActivity : AppCompatActivity() {
     private lateinit var userIdentifier: String
     private lateinit var appColors: AppColors
 
-    private lateinit var api: SelfossApi
+    private lateinit var api: SelfossApiImpl
 
     private lateinit var toolbarMenu: Menu
 
@@ -101,7 +101,7 @@ class ReaderActivity : AppCompatActivity() {
         markOnScroll = prefs.getBoolean("mark_on_scroll", false)
         activeAlignment = prefs.getInt("text_align", JUSTIFY)
 
-        api = SelfossApi(
+        api = SelfossApiImpl(
 //            this,
 //            this@ReaderActivity,
 //            settings.getBoolean("isSelfSignedCert", false),

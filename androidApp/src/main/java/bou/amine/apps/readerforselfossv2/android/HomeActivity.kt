@@ -54,7 +54,7 @@ import bou.amine.apps.readerforselfossv2.android.utils.persistence.toEntity
 import bou.amine.apps.readerforselfossv2.android.utils.persistence.toView
 
 import bou.amine.apps.readerforselfossv2.utils.DateUtils
-import bou.amine.apps.readerforselfossv2.rest.SelfossApi
+import bou.amine.apps.readerforselfossv2.rest.SelfossApiImpl
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
 import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
 import bou.amine.apps.readerforselfossv2.service.SearchService
@@ -129,7 +129,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
     private lateinit var tabNewBadge: TextBadgeItem
     private lateinit var tabArchiveBadge: TextBadgeItem
     private lateinit var tabStarredBadge: TextBadgeItem
-    private lateinit var api: SelfossApi
+    private lateinit var api: SelfossApiImpl
     private lateinit var customTabActivityHelper: CustomTabActivityHelper
     private lateinit var editor: SharedPreferences.Editor
     private lateinit var sharedPref: SharedPreferences
@@ -196,7 +196,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
         settings = getSharedPreferences(Config.settingsName, Context.MODE_PRIVATE)
 
         apiDetailsService = AndroidApiDetailsService(applicationContext)
-        api = SelfossApi(
+        api = SelfossApiImpl(
 //            this,
 //            this@HomeActivity,
 //            settings.getBoolean("isSelfSignedCert", false),

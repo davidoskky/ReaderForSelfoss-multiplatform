@@ -40,7 +40,7 @@ import bou.amine.apps.readerforselfossv2.android.utils.customtabs.CustomTabActiv
 import bou.amine.apps.readerforselfossv2.android.utils.glide.getBitmapInputStream
 import bou.amine.apps.readerforselfossv2.android.utils.glide.loadMaybeBasicAuth
 import bou.amine.apps.readerforselfossv2.android.utils.network.isNetworkAvailable
-import bou.amine.apps.readerforselfossv2.rest.SelfossApi
+import bou.amine.apps.readerforselfossv2.rest.SelfossApiImpl
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
 import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
 import bou.amine.apps.readerforselfossv2.service.SearchService
@@ -109,7 +109,7 @@ class ArticleFragment : Fragment() {
 
         dbService = AndroidDeviceDatabaseService(AndroidDeviceDatabase(requireContext()), SearchService(DateUtils(apiDetailsService)))
 
-        service = SelfossService(SelfossApi(apiDetailsService), dbService, SearchService(DateUtils(apiDetailsService)))
+        service = SelfossService(SelfossApiImpl(apiDetailsService), dbService, SearchService(DateUtils(apiDetailsService)))
 
         val pi: ParecelableItem = requireArguments().getParcelable(ARG_ITEMS)!!
 
@@ -157,7 +157,7 @@ class ArticleFragment : Fragment() {
 
             val settings = requireActivity().getSharedPreferences(Config.settingsName, Context.MODE_PRIVATE)
 
-            val api = SelfossApi(
+            val api = SelfossApiImpl(
 //                requireContext(),
 //                requireActivity(),
 //                settings.getBoolean("isSelfSignedCert", false),

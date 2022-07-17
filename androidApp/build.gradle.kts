@@ -170,6 +170,9 @@ dependencies {
     implementation("me.relex:circleindicator:2.1.6")
     implementation("androidx.viewpager2:viewpager2:1.1.0-beta01")
 
+    //Dependency Injection
+    implementation("org.kodein.di:kodein-di:7.12.0")
+
     //PhotoView
     implementation("com.github.chrisbanes:PhotoView:2.3.0")
 

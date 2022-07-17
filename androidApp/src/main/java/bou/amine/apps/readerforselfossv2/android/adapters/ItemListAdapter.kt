@@ -13,7 +13,7 @@ import bou.amine.apps.readerforselfossv2.android.utils.*
 import bou.amine.apps.readerforselfossv2.android.utils.customtabs.CustomTabActivityHelper
 import bou.amine.apps.readerforselfossv2.android.utils.glide.bitmapCenterCrop
 import bou.amine.apps.readerforselfossv2.android.utils.glide.circularBitmapDrawable
-import bou.amine.apps.readerforselfossv2.rest.SelfossApi
+import bou.amine.apps.readerforselfossv2.rest.SelfossApiImpl
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
 import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
 import bou.amine.apps.readerforselfossv2.service.SearchService
@@ -24,7 +24,7 @@ import com.amulyakhare.textdrawable.util.ColorGenerator
 class ItemListAdapter(
     override val app: Activity,
     override var items: ArrayList<SelfossModel.Item>,
-    override val api: SelfossApi,
+    override val api: SelfossApiImpl,
     override val apiDetailsService: ApiDetailsService,
     override val db: AppDatabase,
     private val helper: CustomTabActivityHelper,

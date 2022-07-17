@@ -26,7 +26,7 @@ import bou.amine.apps.readerforselfossv2.android.service.AndroidApiDetailsServic
 import bou.amine.apps.readerforselfossv2.android.utils.Config
 import bou.amine.apps.readerforselfossv2.android.utils.network.isNetworkAvailable
 
-import bou.amine.apps.readerforselfossv2.rest.SelfossApi
+import bou.amine.apps.readerforselfossv2.rest.SelfossApiImpl
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
 import bou.amine.apps.readerforselfossv2.service.SearchService
 import bou.amine.apps.readerforselfossv2.service.SelfossService
@@ -48,7 +48,7 @@ override fun doWork(): Result {
     val periodicRefresh = sharedPref.getBoolean("periodic_refresh", false)
     if (periodicRefresh) {
         val apiDetailsService = AndroidApiDetailsService(this.context)
-        val api = SelfossApi(
+        val api = SelfossApiImpl(
 //            this.context,
 //            null,
 //            settings.getBoolean("isSelfSignedCert", false),

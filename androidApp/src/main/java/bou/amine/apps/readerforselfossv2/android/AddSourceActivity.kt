@@ -19,13 +19,10 @@ import bou.amine.apps.readerforselfossv2.android.themes.Toppings
 import bou.amine.apps.readerforselfossv2.android.utils.Config
 import bou.amine.apps.readerforselfossv2.android.utils.isBaseUrlValid
 import com.ftinc.scoop.Scoop
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
 import bou.amine.apps.readerforselfossv2.android.databinding.ActivityAddSourceBinding
 import bou.amine.apps.readerforselfossv2.android.service.AndroidApiDetailsService
 
-import bou.amine.apps.readerforselfossv2.rest.SelfossApi
+import bou.amine.apps.readerforselfossv2.rest.SelfossApiImpl
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
 import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
 import kotlinx.coroutines.CoroutineScope
@@ -37,7 +34,7 @@ class AddSourceActivity : AppCompatActivity() {
 
     private lateinit var apiDetailsService: ApiDetailsService
     private var mSpoutsValue: String? = null
-    private lateinit var api: SelfossApi
+    private lateinit var api: SelfossApiImpl
 
     private lateinit var appColors: AppColors
     private lateinit var binding: ActivityAddSourceBinding
@@ -81,7 +78,7 @@ class AddSourceActivity : AppCompatActivity() {
             val settings =
                 getSharedPreferences(Config.settingsName, Context.MODE_PRIVATE)
             apiDetailsService = AndroidApiDetailsService(this@AddSourceActivity)
-            api = SelfossApi(
+            api = SelfossApiImpl(
 //                this,
 //                this@AddSourceActivity,
 //                settings.getBoolean("isSelfSignedCert", false),
@@ -114,7 +111,7 @@ class AddSourceActivity : AppCompatActivity() {
 
     private fun handleSpoutsSpinner(
         spoutsSpinner: Spinner,
-        api: SelfossApi?,
+        api: SelfossApiImpl?,
         mProgress: ProgressBar,
         formContainer: ConstraintLayout
     ) {
@@ -182,7 +179,7 @@ class AddSourceActivity : AppCompatActivity() {
         finish()
     }
 
-    private fun handleSaveSource(tags: EditText, title: String, url: String, api: SelfossApi) {
+    private fun handleSaveSource(tags: EditText, title: String, url: String, api: SelfossApiImpl) {
 
         val sourceDetailsUnavailable =
             title.isEmpty() || url.isEmpty() || mSpoutsValue == null || mSpoutsValue!!.isEmpty()

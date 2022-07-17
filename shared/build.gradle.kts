@@ -27,6 +27,9 @@ kotlin {
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
                 implementation("io.ktor:ktor-client-auth:2.0.1")
                 implementation("org.jsoup:jsoup:1.14.3")
+
+                //Dependency Injection
+                implementation("org.kodein.di:kodein-di:7.12.0")
             }
         }
         val commonTest by getting {
@@ -38,6 +41,9 @@ kotlin {
         val androidMain by getting {
             dependencies {
                 implementation("io.ktor:ktor-client-android:2.0.1")
+
+                //Dependency Injection
+                implementation("org.kodein.di:kodein-di:7.12.0")
             }
         }
         val androidTest by getting {
