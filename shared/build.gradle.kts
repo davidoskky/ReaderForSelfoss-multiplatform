@@ -41,10 +41,6 @@ kotlin {
         val androidMain by getting {
             dependencies {
                 implementation("io.ktor:ktor-client-android:2.0.1")
-
-                //Dependency Injection
-                implementation("org.kodein.di:kodein-di:7.12.0")
-                implementation("org.kodein.di:kodein-di-framework-android-x:7.12.0")
             }
         }
         val androidTest by getting {
