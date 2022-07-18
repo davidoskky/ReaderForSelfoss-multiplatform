@@ -1,18 +1,15 @@
 package bou.amine.apps.readerforselfossv2.android
 
-import android.content.Context
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.os.Bundle
-import androidx.preference.PreferenceManager
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
-import android.widget.Toast
 import bou.amine.apps.readerforselfossv2.android.adapters.SourcesListAdapter
 import bou.amine.apps.readerforselfossv2.android.databinding.ActivitySourcesBinding
 import bou.amine.apps.readerforselfossv2.android.themes.AppColors
 import bou.amine.apps.readerforselfossv2.android.themes.Toppings
-import bou.amine.apps.readerforselfossv2.android.utils.Config
 import bou.amine.apps.readerforselfossv2.android.utils.network.isNetworkAvailable
 import bou.amine.apps.readerforselfossv2.rest.SelfossApiImpl
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
@@ -24,7 +21,6 @@ import kotlinx.coroutines.launch
 import org.kodein.di.DIAware
 import org.kodein.di.android.closestDI
 import org.kodein.di.instance
-import java.util.ArrayList
 
 class SourcesActivity : AppCompatActivity(), DIAware {
 
@@ -63,10 +59,6 @@ class SourcesActivity : AppCompatActivity(), DIAware {
     override fun onResume() {
         super.onResume()
         val mLayoutManager = LinearLayoutManager(this)
-
-        val settings =
-            getSharedPreferences(Config.settingsName, Context.MODE_PRIVATE)
-        val prefs = PreferenceManager.getDefaultSharedPreferences(this)
 
         val api = SelfossApiImpl(
 //            this,

@@ -1,8 +1,6 @@
 package bou.amine.apps.readerforselfossv2.android.fragments
 
-import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.content.res.ColorStateList
 import android.content.res.TypedArray
 import android.graphics.Bitmap
@@ -18,7 +16,6 @@ import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.widget.NestedScrollView
 import androidx.fragment.app.Fragment
-import androidx.preference.PreferenceManager
 import androidx.room.Room
 import bou.amine.apps.readerforselfossv2.android.ImageActivity
 import bou.amine.apps.readerforselfossv2.android.R
@@ -51,6 +48,7 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.request.RequestOptions
 import com.github.rubensousa.floatingtoolbar.FloatingToolbar
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.russhwolf.settings.Settings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -76,7 +74,6 @@ class ArticleFragment : Fragment(), DIAware {
     private lateinit var contentImage: String
     private lateinit var contentTitle: String
     private lateinit var allImages : ArrayList<String>
-    private lateinit var editor: SharedPreferences.Editor
     private lateinit var fab: FloatingActionButton
     private lateinit var appColors: AppColors
     private lateinit var db: AppDatabase
@@ -88,7 +85,7 @@ class ArticleFragment : Fragment(), DIAware {
     override val di : DI by closestDI()
     private val apiDetailsService : ApiDetailsService by instance()
 
-    private lateinit var prefs: SharedPreferences
+    private var settings = Settings()
 
     private var typeface: Typeface? = null
     private var resId: Int = 0
@@ -104,7 +101,7 @@ class ArticleFragment : Fragment(), DIAware {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         appColors = AppColors(requireActivity())
-        config = Config(requireActivity())
+        config = Config()
 
         super.onCreate(savedInstanceState)
 
@@ -137,12 +134,10 @@ class ArticleFragment : Fragment(), DIAware {
             contentSource = item.sourceAndDateText(DateUtils(apiDetailsService))
             allImages = item.getImages()
 
-            prefs = PreferenceManager.getDefaultSharedPreferences(activity)
-            editor = prefs.edit()
-            fontSize = prefs.getString("reader_font_size", "16")!!.toInt()
-            staticBar = prefs.getBoolean("reader_static_bar", false)
+            fontSize = settings.getString("reader_font_size", "16").toInt()
+            staticBar = settings.getBoolean("reader_static_bar", false)
 
-            font = prefs.getString("reader_font", "")!!
+            font = settings.getString("reader_font", "")
             if (font.isNotEmpty()) {
                 resId = requireContext().resources.getIdentifier(font, "font", requireContext().packageName)
                 typeface = try {
@@ -155,8 +150,6 @@ class ArticleFragment : Fragment(), DIAware {
             }
 
             refreshAlignment()
-
-            val settings = requireActivity().getSharedPreferences(Config.settingsName, Context.MODE_PRIVATE)
 
             val api = SelfossApiImpl(
 //                requireContext(),
@@ -277,10 +270,7 @@ class ArticleFragment : Fragment(), DIAware {
                 .setTitle(requireContext().getString(R.string.webview_dialog_issue_title))
                 .setPositiveButton(android.R.string.ok
                 ) { _, _ ->
-                    val sharedPref = PreferenceManager.getDefaultSharedPreferences(requireContext())
-                    val editor = sharedPref.edit()
-                    editor.putBoolean("prefer_article_viewer", false)
-                    editor.apply()
+                    settings.putBoolean("prefer_article_viewer", false)
                     requireActivity().finish()
                 }
                 .create()
@@ -296,7 +286,7 @@ class ArticleFragment : Fragment(), DIAware {
     }
 
     private fun refreshAlignment() {
-        textAlignment = when (prefs.getInt("text_align", 1)) {
+        textAlignment = when (settings.getInt("text_align", 1)) {
             1 -> "justify"
             2 -> "left"
             else -> "justify"

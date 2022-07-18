@@ -3,7 +3,6 @@ package bou.amine.apps.readerforselfossv2.android
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.content.Intent
-import android.content.SharedPreferences
 import android.os.Bundle
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -14,7 +13,6 @@ import android.view.MenuItem
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.TextView
-import androidx.preference.PreferenceManager
 import bou.amine.apps.readerforselfossv2.android.databinding.ActivityLoginBinding
 import bou.amine.apps.readerforselfossv2.android.themes.AppColors
 import bou.amine.apps.readerforselfossv2.android.utils.isBaseUrlValid
@@ -22,6 +20,7 @@ import bou.amine.apps.readerforselfossv2.android.utils.network.isNetworkAvailabl
 import bou.amine.apps.readerforselfossv2.rest.SelfossApiImpl
 import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
 import com.mikepenz.aboutlibraries.LibsBuilder
+import com.russhwolf.settings.Settings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -35,8 +34,7 @@ class LoginActivity() : AppCompatActivity(), DIAware {
     private var isWithLogin = false
     private var isWithHTTPLogin = false
 
-    private lateinit var settings: SharedPreferences
-    private lateinit var editor: SharedPreferences.Editor
+    private val settings = Settings()
     private lateinit var userIdentifier: String
     private lateinit var appColors: AppColors
     private lateinit var binding: ActivityLoginBinding
@@ -57,12 +55,9 @@ class LoginActivity() : AppCompatActivity(), DIAware {
 
         handleBaseUrlFail()
 
-        settings = PreferenceManager.getDefaultSharedPreferences(applicationContext)
-        userIdentifier = settings.getString("unique_id", "")!!
+        userIdentifier = settings.getString("unique_id", "")
 
-        editor = settings.edit()
-
-        if (settings.getString("url", "")!!.isNotEmpty()) {
+        if (settings.getString("url", "").isNotEmpty()) {
             goToMain()
         }
 
@@ -127,12 +122,11 @@ class LoginActivity() : AppCompatActivity(), DIAware {
     }
 
     private fun preferenceError(t: Throwable) {
-        editor.remove("url")
-        editor.remove("login")
-        editor.remove("httpUserName")
-        editor.remove("password")
-        editor.remove("httpPassword")
-        editor.apply()
+        settings.remove("url")
+        settings.remove("login")
+        settings.remove("httpUserName")
+        settings.remove("password")
+        settings.remove("httpPassword")
         binding.urlView.error = getString(R.string.wrong_infos)
         binding.loginView.error = getString(R.string.wrong_infos)
         binding.passwordView.error = getString(R.string.wrong_infos)
@@ -210,13 +204,12 @@ class LoginActivity() : AppCompatActivity(), DIAware {
         } else {
             showProgress(true)
 
-            editor.putString("url", url)
-            editor.putString("login", login)
-            editor.putString("httpUserName", httpLogin)
-            editor.putString("password", password)
-            editor.putString("httpPassword", httpPassword)
-            editor.putBoolean("isSelfSignedCert", isWithSelfSignedCert)
-            editor.apply()
+            settings.putString("url", url)
+            settings.putString("login", login)
+            settings.putString("httpUserName", httpLogin)
+            settings.putString("password", password)
+            settings.putString("httpPassword", httpPassword)
+            settings.putBoolean("isSelfSignedCert", isWithSelfSignedCert)
             apiDetailsService.refresh()
 
             val api = SelfossApiImpl(

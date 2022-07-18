@@ -1,9 +1,7 @@
 package bou.amine.apps.readerforselfossv2.android
 
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import androidx.preference.PreferenceManager
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.appcompat.app.AppCompatActivity
 import android.view.View
@@ -24,6 +22,7 @@ import bou.amine.apps.readerforselfossv2.android.databinding.ActivityAddSourceBi
 import bou.amine.apps.readerforselfossv2.rest.SelfossApiImpl
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
 import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
+import com.russhwolf.settings.Settings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -39,6 +38,7 @@ class AddSourceActivity : AppCompatActivity(), DIAware {
 
     private lateinit var appColors: AppColors
     private lateinit var binding: ActivityAddSourceBinding
+    private val settings = Settings()
 
     override val di by closestDI()
     private val apiDetailsService : ApiDetailsService by instance()
@@ -78,9 +78,6 @@ class AddSourceActivity : AppCompatActivity(), DIAware {
         supportActionBar?.setDisplayShowHomeEnabled(true)
 
         try {
-            val prefs = PreferenceManager.getDefaultSharedPreferences(this)
-            val settings =
-                getSharedPreferences(Config.settingsName, Context.MODE_PRIVATE)
             api = SelfossApiImpl(
 //                this,
 //                this@AddSourceActivity,
@@ -103,7 +100,7 @@ class AddSourceActivity : AppCompatActivity(), DIAware {
 
     override fun onResume() {
         super.onResume()
-        val config = Config(this)
+        val config = Config()
 
         if (config.baseUrl.isEmpty() || !config.baseUrl.isBaseUrlValid(this@AddSourceActivity)) {
             mustLoginToAddSource()
@@ -199,7 +196,7 @@ class AddSourceActivity : AppCompatActivity(), DIAware {
                             mSpoutsValue!!,
                             tags.text.toString(),
                             "",
-                            PreferenceManager.getDefaultSharedPreferences(this@AddSourceActivity).getInt("apiVersionMajor", 0)
+                            settings.getInt("apiVersionMajor", 0)
                         )
                     if (response != null) {
                         finish()

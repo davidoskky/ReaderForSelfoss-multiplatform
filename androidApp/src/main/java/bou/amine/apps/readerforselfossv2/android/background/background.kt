@@ -5,7 +5,6 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import androidx.preference.PreferenceManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationCompat.PRIORITY_DEFAULT
 import androidx.core.app.NotificationCompat.PRIORITY_LOW
@@ -32,6 +31,7 @@ import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
 import bou.amine.apps.readerforselfossv2.service.SearchService
 import bou.amine.apps.readerforselfossv2.service.SelfossService
 import bou.amine.apps.readerforselfossv2.utils.DateUtils
+import com.russhwolf.settings.Settings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -48,10 +48,8 @@ class LoadingWorker(val context: Context, params: WorkerParameters) : Worker(con
     private val apiDetailsService : ApiDetailsService by instance()
 
 override fun doWork(): Result {
-    val settings =
-        this.context.getSharedPreferences(Config.settingsName, Context.MODE_PRIVATE)
-    val sharedPref = PreferenceManager.getDefaultSharedPreferences(this.context)
-    val periodicRefresh = sharedPref.getBoolean("periodic_refresh", false)
+    val settings = Settings()
+    val periodicRefresh = settings.getBoolean("periodic_refresh", false)
     if (periodicRefresh) {
         val api = SelfossApiImpl(
 //            this.context,
@@ -82,7 +80,7 @@ override fun doWork(): Result {
 
                 notificationManager.notify(1, notification.build())
 
-                val notifyNewItems = sharedPref.getBoolean("notify_new_items", false)
+                val notifyNewItems = settings.getBoolean("notify_new_items", false)
 
                 db = Room.databaseBuilder(
                     applicationContext,

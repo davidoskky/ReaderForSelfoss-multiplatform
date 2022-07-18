@@ -1,14 +1,11 @@
 package bou.amine.apps.readerforselfossv2.android
 
-import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
-import androidx.preference.PreferenceManager
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -79,6 +76,7 @@ import com.mikepenz.materialdrawer.util.DrawerImageLoader
 import com.mikepenz.materialdrawer.util.addStickyFooterItem
 import com.mikepenz.materialdrawer.util.updateBadge
 import com.mikepenz.materialdrawer.widget.AccountHeaderView
+import com.russhwolf.settings.Settings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -132,13 +130,11 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
     private lateinit var tabStarredBadge: TextBadgeItem
     private lateinit var api: SelfossApiImpl
     private lateinit var customTabActivityHelper: CustomTabActivityHelper
-    private lateinit var editor: SharedPreferences.Editor
-    private lateinit var sharedPref: SharedPreferences
     private lateinit var appColors: AppColors
     private var offset: Int = 0
     private var firstVisible: Int = 0
     private lateinit var recyclerViewScrollListener: RecyclerView.OnScrollListener
-    private lateinit var settings: SharedPreferences
+    private var settings = Settings()
     private lateinit var binding: ActivityHomeBinding
 
     private var recyclerAdapter: RecyclerView.Adapter<*>? = null
@@ -164,7 +160,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
 
     override fun onCreate(savedInstanceState: Bundle?) {
         appColors = AppColors(this@HomeActivity)
-        config = Config(this@HomeActivity)
+        config = Config()
 
         super.onCreate(savedInstanceState)
         binding = ActivityHomeBinding.inflate(layoutInflater)
@@ -196,9 +192,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
 
         customTabActivityHelper = CustomTabActivityHelper()
 
-        sharedPref = PreferenceManager.getDefaultSharedPreferences(this)
-        settings = getSharedPreferences(Config.settingsName, Context.MODE_PRIVATE)
-
         api = SelfossApiImpl(
 //            this,
 //            this@HomeActivity,
@@ -219,7 +212,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
 
         handleSwipeRefreshLayout()
 
-        handleSharedPrefs()
+        handleSettings()
 
         getApiMajorVersion()
 
@@ -358,7 +351,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
             val version = api.version()
             if (version != null) {
                 apiVersionMajor = version.getApiMajorVersion()
-                sharedPref.edit().putInt("apiVersionMajor", apiVersionMajor).apply()
+                settings.putInt("apiVersionMajor", apiVersionMajor)
             }
         }
     }
@@ -368,10 +361,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
 
         // TODO: Make this the only appcolors init
         appColors = AppColors(this@HomeActivity)
-
-        sharedPref = PreferenceManager.getDefaultSharedPreferences(this)
-
-        editor = settings.edit()
 
         handleDrawerItems()
 
@@ -399,34 +388,34 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
         customTabActivityHelper.unbindCustomTabsService(this)
     }
 
-    private fun handleSharedPrefs() {
-        internalBrowser = sharedPref.getBoolean("prefer_internal_browser", true)
-        articleViewer = sharedPref.getBoolean("prefer_article_viewer", true)
-        shouldBeCardView = sharedPref.getBoolean("card_view_active", false)
-        displayUnreadCount = sharedPref.getBoolean("display_unread_count", true)
-        displayAllCount = sharedPref.getBoolean("display_other_count", false)
-        fullHeightCards = sharedPref.getBoolean("full_height_cards", false)
-        itemsNumber = sharedPref.getString("prefer_api_items_number", "200")!!.toInt()
-        userIdentifier = sharedPref.getString("unique_id", "")!!
-        displayAccountHeader = sharedPref.getBoolean("account_header_displaying", false)
-        infiniteScroll = sharedPref.getBoolean("infinite_loading", false)
-        searchService.itemsCaching = sharedPref.getBoolean("items_caching", false)
-        updateSources = sharedPref.getBoolean("update_sources", true)
-        markOnScroll = sharedPref.getBoolean("mark_on_scroll", false)
-        hiddenTags = if (sharedPref.getString("hidden_tags", "")!!.isNotEmpty()) {
-            sharedPref.getString("hidden_tags", "")!!.replace("\\s".toRegex(), "").split(",")
+    private fun handleSettings() {
+        internalBrowser = settings.getBoolean("prefer_internal_browser", true)
+        articleViewer = settings.getBoolean("prefer_article_viewer", true)
+        shouldBeCardView = settings.getBoolean("card_view_active", false)
+        displayUnreadCount = settings.getBoolean("display_unread_count", true)
+        displayAllCount = settings.getBoolean("display_other_count", false)
+        fullHeightCards = settings.getBoolean("full_height_cards", false)
+        itemsNumber = settings.getString("prefer_api_items_number", "200").toInt()
+        userIdentifier = settings.getString("unique_id", "")
+        displayAccountHeader = settings.getBoolean("account_header_displaying", false)
+        infiniteScroll = settings.getBoolean("infinite_loading", false)
+        searchService.itemsCaching = settings.getBoolean("items_caching", false)
+        updateSources = settings.getBoolean("update_sources", true)
+        markOnScroll = settings.getBoolean("mark_on_scroll", false)
+        hiddenTags = if (settings.getString("hidden_tags", "").isNotEmpty()) {
+            settings.getString("hidden_tags", "").replace("\\s".toRegex(), "").split(",")
         } else {
             emptyList()
         }
-        periodicRefresh = sharedPref.getBoolean("periodic_refresh", false)
-        refreshWhenChargingOnly = sharedPref.getBoolean("refresh_when_charging", false)
-        refreshMinutes = sharedPref.getString("periodic_refresh_minutes", "360")!!.toLong()
+        periodicRefresh = settings.getBoolean("periodic_refresh", false)
+        refreshWhenChargingOnly = settings.getBoolean("refresh_when_charging", false)
+        refreshMinutes = settings.getString("periodic_refresh_minutes", "360").toLong()
 
         if (refreshMinutes <= 15) {
             refreshMinutes = 15
         }
 
-        apiVersionMajor = sharedPref.getInt("apiVersionMajor", 0)
+        apiVersionMajor = settings.getInt("apiVersionMajor", 0)
     }
 
     private fun handleThemeBinding() {
@@ -481,8 +470,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
         binding.drawerContainer.addDrawerListener(drawerListener)
 
         displayAccountHeader =
-                PreferenceManager.getDefaultSharedPreferences(this)
-                    .getBoolean("account_header_displaying", false)
+                settings.getBoolean("account_header_displaying", false)
 
         binding.mainDrawer.addStickyFooterItem(
             PrimaryDrawerItem().apply {
@@ -512,7 +500,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
                 attachToSliderView(binding.mainDrawer)
                 addProfiles(
                     ProfileDrawerItem().apply {
-                        nameText = settings.getString("url", "").toString()
+                        nameText = settings.getString("url", "")
                         setBackgroundResource(R.drawable.bg)
                         iconRes = R.mipmap.ic_launcher
                         selectionListEnabledForSingleProfile = false
@@ -1211,7 +1199,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
                 return true
             }
             R.id.action_disconnect -> {
-                return Config.logoutAndRedirect(this, this@HomeActivity, editor)
+                return Config.logoutAndRedirect(this, this@HomeActivity)
             }
             else -> return super.onOptionsItemSelected(item)
         }

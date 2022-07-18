@@ -1,7 +1,5 @@
 package bou.amine.apps.readerforselfossv2.android
 
-import android.content.Context
-import android.content.SharedPreferences
 import android.graphics.Color
 import android.os.Bundle
 import android.view.KeyEvent
@@ -10,7 +8,6 @@ import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
-import androidx.preference.PreferenceManager
 import androidx.room.Room
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
@@ -22,12 +19,12 @@ import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATIO
 import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_3_4
 import bou.amine.apps.readerforselfossv2.android.themes.AppColors
 import bou.amine.apps.readerforselfossv2.android.themes.Toppings
-import bou.amine.apps.readerforselfossv2.android.utils.Config
 import bou.amine.apps.readerforselfossv2.android.utils.toggleStar
 import bou.amine.apps.readerforselfossv2.rest.SelfossApiImpl
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
 import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
 import com.ftinc.scoop.Scoop
+import com.russhwolf.settings.Settings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -47,7 +44,6 @@ class ReaderActivity : AppCompatActivity(), DIAware {
     private lateinit var toolbarMenu: Menu
 
     private lateinit var db: AppDatabase
-    private lateinit var prefs: SharedPreferences
     private lateinit var binding: ActivityReaderBinding
 
     private var activeAlignment: Int = 1
@@ -73,7 +69,7 @@ class ReaderActivity : AppCompatActivity(), DIAware {
         showMenuItem(false)
     }
 
-    private lateinit var editor: SharedPreferences.Editor
+    private var settings = Settings()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -96,15 +92,9 @@ class ReaderActivity : AppCompatActivity(), DIAware {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.setDisplayShowHomeEnabled(true)
 
-        val settings =
-            getSharedPreferences(Config.settingsName, Context.MODE_PRIVATE)
-
-        prefs = PreferenceManager.getDefaultSharedPreferences(this)
-        editor = prefs.edit()
-
-        userIdentifier = prefs.getString("unique_id", "")!!
-        markOnScroll = prefs.getBoolean("mark_on_scroll", false)
-        activeAlignment = prefs.getInt("text_align", JUSTIFY)
+        userIdentifier = settings.getString("unique_id", "")
+        markOnScroll = settings.getBoolean("mark_on_scroll", false)
+        activeAlignment = settings.getInt("text_align", JUSTIFY)
 
         api = SelfossApiImpl(
 //            this,
@@ -246,14 +236,12 @@ class ReaderActivity : AppCompatActivity(), DIAware {
                 }
             }
             R.id.align_left -> {
-                editor.putInt("text_align", ALIGN_LEFT)
-                editor.apply()
+                settings.putInt("text_align", ALIGN_LEFT)
                 alignmentMenu(true)
                 refreshFragment()
             }
             R.id.align_justify -> {
-                editor.putInt("text_align", JUSTIFY)
-                editor.apply()
+                settings.putInt("text_align", JUSTIFY)
                 alignmentMenu(false)
                 refreshFragment()
             }

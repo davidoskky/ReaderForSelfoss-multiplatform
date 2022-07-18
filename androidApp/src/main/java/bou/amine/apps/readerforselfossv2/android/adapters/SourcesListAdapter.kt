@@ -43,7 +43,7 @@ class SourcesListAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val itm = items[position]
-        config = Config(c)
+        config = Config()
 
         if (itm.getIcon(apiDetailsService.getBaseUrl()).isEmpty()) {
             val color = generator.getColor(itm.getTitleDecoded())

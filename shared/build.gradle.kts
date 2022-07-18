@@ -30,6 +30,12 @@ kotlin {
 
                 //Dependency Injection
                 implementation("org.kodein.di:kodein-di:7.12.0")
+
+                //Settings
+                implementation("com.russhwolf:multiplatform-settings-no-arg:0.9")
+
+                //Logging
+                implementation("io.github.aakira:napier:2.6.1")
             }
         }
         val commonTest by getting {
