@@ -33,7 +33,6 @@ import bou.amine.apps.readerforselfossv2.android.persistence.entities.AndroidIte
 import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_1_2
 import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_2_3
 import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_3_4
-import bou.amine.apps.readerforselfossv2.android.service.AndroidApiDetailsService
 import bou.amine.apps.readerforselfossv2.android.themes.AppColors
 import bou.amine.apps.readerforselfossv2.android.utils.*
 import bou.amine.apps.readerforselfossv2.android.utils.customtabs.CustomTabActivityHelper
@@ -55,6 +54,8 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.kodein.di.*
+import org.kodein.di.android.x.closestDI
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -63,9 +64,8 @@ import java.net.URL
 import java.util.*
 import java.util.concurrent.ExecutionException
 
-class ArticleFragment : Fragment() {
+class ArticleFragment : Fragment(), DIAware {
     private lateinit var dbService: AndroidDeviceDatabaseService
-    private lateinit var apiDetailsService: ApiDetailsService
     private lateinit var service: SelfossService<AndroidItemEntity>
     private var fontSize: Int = 16
     private lateinit var item: SelfossModel.Item
@@ -84,6 +84,9 @@ class ArticleFragment : Fragment() {
     private lateinit var config: Config
     private var _binding: FragmentArticleBinding? = null
     private val binding get() = _binding!!
+
+    override val di : DI by closestDI()
+    private val apiDetailsService : ApiDetailsService by instance()
 
     private lateinit var prefs: SharedPreferences
 
@@ -104,8 +107,6 @@ class ArticleFragment : Fragment() {
         config = Config(requireActivity())
 
         super.onCreate(savedInstanceState)
-
-        apiDetailsService = AndroidApiDetailsService(requireContext())
 
         dbService = AndroidDeviceDatabaseService(AndroidDeviceDatabase(requireContext()), SearchService(DateUtils(apiDetailsService)))
 

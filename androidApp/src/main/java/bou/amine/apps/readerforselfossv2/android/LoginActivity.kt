@@ -26,6 +26,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.kodein.di.*
+import org.kodein.di.android.closestDI
 
 class LoginActivity() : AppCompatActivity(), DIAware {
 
@@ -40,8 +41,7 @@ class LoginActivity() : AppCompatActivity(), DIAware {
     private lateinit var appColors: AppColors
     private lateinit var binding: ActivityLoginBinding
 
-    override val diContext: DIContext<*> = diContext(this)
-    override val di by lazy { (application as MyApp).di }
+    override val di by closestDI()
     private val apiDetailsService : ApiDetailsService by instance()
 
     override fun onCreate(savedInstanceState: Bundle?) {

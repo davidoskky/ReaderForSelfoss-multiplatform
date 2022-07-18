@@ -20,7 +20,6 @@ import bou.amine.apps.readerforselfossv2.android.utils.Config
 import bou.amine.apps.readerforselfossv2.android.utils.isBaseUrlValid
 import com.ftinc.scoop.Scoop
 import bou.amine.apps.readerforselfossv2.android.databinding.ActivityAddSourceBinding
-import bou.amine.apps.readerforselfossv2.android.service.AndroidApiDetailsService
 
 import bou.amine.apps.readerforselfossv2.rest.SelfossApiImpl
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
@@ -28,16 +27,21 @@ import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.kodein.di.DIAware
+import org.kodein.di.android.closestDI
+import org.kodein.di.instance
 
 
-class AddSourceActivity : AppCompatActivity() {
+class AddSourceActivity : AppCompatActivity(), DIAware {
 
-    private lateinit var apiDetailsService: ApiDetailsService
     private var mSpoutsValue: String? = null
     private lateinit var api: SelfossApiImpl
 
     private lateinit var appColors: AppColors
     private lateinit var binding: ActivityAddSourceBinding
+
+    override val di by closestDI()
+    private val apiDetailsService : ApiDetailsService by instance()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         appColors = AppColors(this@AddSourceActivity)
@@ -77,7 +81,6 @@ class AddSourceActivity : AppCompatActivity() {
             val prefs = PreferenceManager.getDefaultSharedPreferences(this)
             val settings =
                 getSharedPreferences(Config.settingsName, Context.MODE_PRIVATE)
-            apiDetailsService = AndroidApiDetailsService(this@AddSourceActivity)
             api = SelfossApiImpl(
 //                this,
 //                this@AddSourceActivity,

@@ -172,6 +172,7 @@ dependencies {
 
     //Dependency Injection
     implementation("org.kodein.di:kodein-di:7.12.0")
+    implementation("org.kodein.di:kodein-di-framework-android-x:7.12.0")
 
     //PhotoView
     implementation("com.github.chrisbanes:PhotoView:2.3.0")

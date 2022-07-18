@@ -41,7 +41,6 @@ import bou.amine.apps.readerforselfossv2.android.persistence.entities.AndroidIte
 import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_1_2
 import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_2_3
 import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_3_4
-import bou.amine.apps.readerforselfossv2.android.service.AndroidApiDetailsService
 import bou.amine.apps.readerforselfossv2.android.settings.SettingsActivity
 import bou.amine.apps.readerforselfossv2.android.themes.AppColors
 import bou.amine.apps.readerforselfossv2.android.themes.Toppings
@@ -83,15 +82,17 @@ import com.mikepenz.materialdrawer.widget.AccountHeaderView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.kodein.di.DIAware
+import org.kodein.di.android.closestDI
+import org.kodein.di.instance
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
-class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
+class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAware {
 
     private lateinit var dataBase: AndroidDeviceDatabase
     private lateinit var dbService: AndroidDeviceDatabaseService
     private lateinit var searchService: SearchService
-    private lateinit var apiDetailsService: ApiDetailsService
     private lateinit var service: SelfossService<AndroidItemEntity>
     private val MENU_PREFERENCES = 12302
     private val DRAWER_ID_TAGS = 100101L
@@ -151,6 +152,9 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
 
     private lateinit var config: Config
 
+    override val di by closestDI()
+    private val apiDetailsService : ApiDetailsService by instance()
+
     data class DrawerData(val tags: List<SelfossModel.Tag>?, val sources: List<SelfossModel.Source>?)
 
     override fun onStart() {
@@ -195,7 +199,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
         sharedPref = PreferenceManager.getDefaultSharedPreferences(this)
         settings = getSharedPreferences(Config.settingsName, Context.MODE_PRIVATE)
 
-        apiDetailsService = AndroidApiDetailsService(applicationContext)
         api = SelfossApiImpl(
 //            this,
 //            this@HomeActivity,

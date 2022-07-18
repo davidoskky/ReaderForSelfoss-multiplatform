@@ -10,23 +10,29 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import android.widget.Toast
 import bou.amine.apps.readerforselfossv2.android.adapters.SourcesListAdapter
 import bou.amine.apps.readerforselfossv2.android.databinding.ActivitySourcesBinding
-import bou.amine.apps.readerforselfossv2.android.service.AndroidApiDetailsService
 import bou.amine.apps.readerforselfossv2.android.themes.AppColors
 import bou.amine.apps.readerforselfossv2.android.themes.Toppings
 import bou.amine.apps.readerforselfossv2.android.utils.Config
 import bou.amine.apps.readerforselfossv2.android.utils.network.isNetworkAvailable
 import bou.amine.apps.readerforselfossv2.rest.SelfossApiImpl
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
+import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
 import com.ftinc.scoop.Scoop
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.kodein.di.DIAware
+import org.kodein.di.android.closestDI
+import org.kodein.di.instance
 import java.util.ArrayList
 
-class SourcesActivity : AppCompatActivity() {
+class SourcesActivity : AppCompatActivity(), DIAware {
 
     private lateinit var appColors: AppColors
     private lateinit var binding: ActivitySourcesBinding
+
+    override val di by closestDI()
+    private val apiDetailsService : ApiDetailsService by instance()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         appColors = AppColors(this@SourcesActivity)
@@ -62,7 +68,6 @@ class SourcesActivity : AppCompatActivity() {
             getSharedPreferences(Config.settingsName, Context.MODE_PRIVATE)
         val prefs = PreferenceManager.getDefaultSharedPreferences(this)
 
-        val apiDetailsService = AndroidApiDetailsService(this@SourcesActivity)
         val api = SelfossApiImpl(
 //            this,
 //            this@SourcesActivity,

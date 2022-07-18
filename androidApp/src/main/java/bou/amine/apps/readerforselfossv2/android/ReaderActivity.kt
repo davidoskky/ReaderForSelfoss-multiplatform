@@ -20,7 +20,6 @@ import bou.amine.apps.readerforselfossv2.android.persistence.database.AppDatabas
 import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_1_2
 import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_2_3
 import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_3_4
-import bou.amine.apps.readerforselfossv2.android.service.AndroidApiDetailsService
 import bou.amine.apps.readerforselfossv2.android.themes.AppColors
 import bou.amine.apps.readerforselfossv2.android.themes.Toppings
 import bou.amine.apps.readerforselfossv2.android.utils.Config
@@ -32,8 +31,11 @@ import com.ftinc.scoop.Scoop
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.kodein.di.DIAware
+import org.kodein.di.android.closestDI
+import org.kodein.di.instance
 
-class ReaderActivity : AppCompatActivity() {
+class ReaderActivity : AppCompatActivity(), DIAware {
 
     private var markOnScroll: Boolean = false
     private var currentItem: Int = 0
@@ -51,6 +53,9 @@ class ReaderActivity : AppCompatActivity() {
     private var activeAlignment: Int = 1
     private val JUSTIFY = 1
     private val ALIGN_LEFT = 2
+
+    override val di by closestDI()
+    private val apiDetailsService : ApiDetailsService by instance()
 
     private fun showMenuItem(willAddToFavorite: Boolean) {
         if (willAddToFavorite) {
@@ -106,7 +111,7 @@ class ReaderActivity : AppCompatActivity() {
 //            this@ReaderActivity,
 //            settings.getBoolean("isSelfSignedCert", false),
 //            prefs.getString("api_timeout", "-1")!!.toLong()
-            AndroidApiDetailsService(this@ReaderActivity)
+            apiDetailsService
         )
 
         if (allItems.isEmpty()) {
