@@ -1012,7 +1012,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
                         ItemCardAdapter(
                             this,
                             items,
-                            api,
                             apiDetailsService,
                             db,
                             customTabActivityHelper,
@@ -1031,7 +1030,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
                         ItemListAdapter(
                             this,
                             items,
-                            api,
                             apiDetailsService,
                             db,
                             customTabActivityHelper,

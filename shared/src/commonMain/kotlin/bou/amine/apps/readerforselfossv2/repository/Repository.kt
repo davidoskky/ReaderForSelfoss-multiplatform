@@ -14,10 +14,10 @@ interface Repository {
     fun getTags(): List<SelfossModel.Tag>
     fun getSpouts(): List<SelfossModel.Spout>
     fun getSources(): List<SelfossModel.Source>
-    fun markAsRead(id: String): Boolean
-    fun unmarkAsRead(id: String): Boolean
-    fun starr(id: String): Boolean
-    fun unstarr(id: String): Boolean
+    suspend fun markAsRead(id: String): Boolean
+    suspend fun unmarkAsRead(id: String): Boolean
+    suspend fun starr(id: String): Boolean
+    suspend fun unstarr(id: String): Boolean
     fun markAllAsRead(ids: List<String>): Boolean
     fun createSource(title: String,
                      url: String,

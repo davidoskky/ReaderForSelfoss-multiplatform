@@ -31,20 +31,27 @@ class RepositoryImpl(private val api: SelfossApi) : Repository {
         TODO("Not yet implemented")
     }
 
-    override fun markAsRead(id: String): Boolean {
-        TODO("Not yet implemented")
+    override suspend fun markAsRead(id: String): Boolean {
+        // TODO: Check success, store in DB
+        api.markAsRead(id)
+        return true
     }
 
-    override fun unmarkAsRead(id: String): Boolean {
-        TODO("Not yet implemented")
+    override suspend fun unmarkAsRead(id: String): Boolean {
+        // TODO: Check success, store in DB
+        api.unmarkAsRead(id)
+        return true    }
+
+    override suspend fun starr(id: String): Boolean {
+        // TODO: Check success, store in DB
+        api.starr(id)
+        return true
     }
 
-    override fun starr(id: String): Boolean {
-        TODO("Not yet implemented")
-    }
-
-    override fun unstarr(id: String): Boolean {
-        TODO("Not yet implemented")
+    override suspend fun unstarr(id: String): Boolean {
+        // TODO: Check success, store in DB
+        api.unstarr(id)
+        return true
     }
 
     override fun markAllAsRead(ids: List<String>): Boolean {
