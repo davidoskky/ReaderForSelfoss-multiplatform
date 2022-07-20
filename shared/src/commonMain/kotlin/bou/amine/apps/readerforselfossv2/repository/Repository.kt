@@ -9,7 +9,6 @@ interface Repository {
     var selectedItems: List<SelfossModel.Item>
 
     // API
-    fun getItems(): List<SelfossModel.Item>
     fun getMoreItems(): List<SelfossModel.Item>
     fun stats(): SelfossModel.Stats
     fun getTags(): List<SelfossModel.Tag>
@@ -27,6 +26,6 @@ interface Repository {
                      filter: String): Boolean
     fun deleteSource(id: Int): Boolean
     fun updateRemote(): Boolean
-    fun login(): Boolean
-    fun refreshLoginInformation(): Boolean
+    suspend fun login(): Boolean
+    fun refreshLoginInformation()
 }

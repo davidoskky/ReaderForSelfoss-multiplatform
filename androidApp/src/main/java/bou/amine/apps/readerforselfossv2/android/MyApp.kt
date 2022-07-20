@@ -9,10 +9,11 @@ import android.os.Build
 import android.widget.ImageView
 import androidx.multidex.MultiDexApplication
 import androidx.preference.PreferenceManager
+import bou.amine.apps.readerforselfossv2.DI.networkModule
 import bou.amine.apps.readerforselfossv2.android.utils.Config
 import bou.amine.apps.readerforselfossv2.android.utils.glide.loadMaybeBasicAuth
-import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
-import bou.amine.apps.readerforselfossv2.service.ApiDetailsServiceImpl
+import bou.amine.apps.readerforselfossv2.repository.Repository
+import bou.amine.apps.readerforselfossv2.repository.RepositoryImpl
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
 import com.ftinc.scoop.Scoop
@@ -25,7 +26,8 @@ import java.util.UUID.randomUUID
 class MyApp : MultiDexApplication(), DIAware {
 
     override val di by DI.lazy {
-        bind<ApiDetailsService>() with singleton { ApiDetailsServiceImpl() }
+        import(networkModule)
+        bind<Repository>() with singleton { RepositoryImpl(instance()) }
     }
 
     private lateinit var config: Config

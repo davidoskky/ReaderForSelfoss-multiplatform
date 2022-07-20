@@ -4,28 +4,27 @@ import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.content.Intent
 import android.os.Bundle
-import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
 import android.text.TextUtils
-import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
 import bou.amine.apps.readerforselfossv2.android.databinding.ActivityLoginBinding
 import bou.amine.apps.readerforselfossv2.android.themes.AppColors
 import bou.amine.apps.readerforselfossv2.android.utils.isBaseUrlValid
 import bou.amine.apps.readerforselfossv2.android.utils.network.isNetworkAvailable
-import bou.amine.apps.readerforselfossv2.rest.SelfossApiImpl
-import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
+import bou.amine.apps.readerforselfossv2.repository.Repository
 import com.mikepenz.aboutlibraries.LibsBuilder
 import com.russhwolf.settings.Settings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import org.kodein.di.*
+import org.kodein.di.DIAware
 import org.kodein.di.android.closestDI
+import org.kodein.di.instance
 
 class LoginActivity() : AppCompatActivity(), DIAware {
 
@@ -40,7 +39,7 @@ class LoginActivity() : AppCompatActivity(), DIAware {
     private lateinit var binding: ActivityLoginBinding
 
     override val di by closestDI()
-    private val apiDetailsService : ApiDetailsService by instance()
+    private val repository : Repository by instance()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         appColors = AppColors(this@LoginActivity)
@@ -210,30 +209,17 @@ class LoginActivity() : AppCompatActivity(), DIAware {
             settings.putString("password", password)
             settings.putString("httpPassword", httpPassword)
             settings.putBoolean("isSelfSignedCert", isWithSelfSignedCert)
-            apiDetailsService.refresh()
-
-            val api = SelfossApiImpl(
-//                this,
-//                this@LoginActivity,
-//                isWithSelfSignedCert,
-//                -1L
-                apiDetailsService
-            )
+            repository.refreshLoginInformation()
 
             if (this@LoginActivity.isNetworkAvailable(this@LoginActivity.findViewById(R.id.loginForm))) {
                 CoroutineScope(Dispatchers.IO).launch {
-                    try {
-                        val result = api.login()
-                        if (result != null && result.isSuccess) {
-                            goToMain()
-                        } else {
-                            CoroutineScope(Dispatchers.Main).launch {
-                                preferenceError(Exception("Not success"))
-                            }
+                    val result = repository.login()
+                    if (result) {
+                        goToMain()
+                    } else {
+                        CoroutineScope(Dispatchers.Main).launch {
+                            preferenceError(Exception("Not success"))
                         }
-                    } catch (cause: Throwable) {
-                        Log.e("1", cause.message!!)
-                        Log.e("1", cause.stackTraceToString())
                     }
                 }
             }

@@ -16,6 +16,8 @@ interface SelfossApi {
     val client: HttpClient
     fun url(path: String): String
 
+    fun refreshLoginInformation()
+
     suspend fun login(): SelfossModel.SuccessResponse?
 
     suspend fun getItems(
@@ -64,43 +66,51 @@ interface SelfossApi {
 
 class SelfossApiImpl(private val apiDetailsService: ApiDetailsService) : SelfossApi {
 
-    override val client = HttpClient() {
-        install(ContentNegotiation) {
-            install(HttpCache)
-            json(Json {
-                prettyPrint = true
-                isLenient = true
-                ignoreUnknownKeys = true
-            })
-        }
-        install(Logging) {
-            logger = object: Logger {
-                override fun log(message: String) {
-                    apiDetailsService.logApiCalls(message)
-                }
-            }
-            level = LogLevel.ALL
-        }
-        /* TODO: Auth as basic
-        if (apiDetailsService.getUserName().isNotEmpty() && apiDetailsService.getPassword().isNotEmpty()) {
+    override var client = createHttpClient()
 
-            install(Auth) {
-                basic {
-                    credentials {
-                        BasicAuthCredentials(username = apiDetailsService.getUserName(), password = apiDetailsService.getPassword())
-                    }
-                    sendWithoutRequest {
-                        true
+    private fun createHttpClient(): HttpClient {
+        return HttpClient {
+            install(ContentNegotiation) {
+                install(HttpCache)
+                json(Json {
+                    prettyPrint = true
+                    isLenient = true
+                    ignoreUnknownKeys = true
+                })
+            }
+            install(Logging) {
+                logger = object : Logger {
+                    override fun log(message: String) {
+                        apiDetailsService.logApiCalls(message)
                     }
                 }
+                level = LogLevel.ALL
             }
-        }*/
-        expectSuccess = false
+            /* TODO: Auth as basic
+            if (apiDetailsService.getUserName().isNotEmpty() && apiDetailsService.getPassword().isNotEmpty()) {
+
+                install(Auth) {
+                    basic {
+                        credentials {
+                            BasicAuthCredentials(username = apiDetailsService.getUserName(), password = apiDetailsService.getPassword())
+                        }
+                        sendWithoutRequest {
+                            true
+                        }
+                    }
+                }
+            }*/
+            expectSuccess = false
+        }
     }
 
     override fun url(path: String) =
         "${apiDetailsService.getBaseUrl()}$path"
 
+    override fun refreshLoginInformation() {
+        apiDetailsService.refresh()
+        client = createHttpClient()
+    }
 
     override suspend fun login(): SelfossModel.SuccessResponse? =
         client.get(url("/login")) {
