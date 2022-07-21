@@ -7,8 +7,11 @@ interface Repository {
     // TODO: remove the items variables in favor of storing everything in the database
     var items: List<SelfossModel.Item>
     var selectedItems: List<SelfossModel.Item>
+    var baseUrl: String
 
     // API
+    var apiMajorVersion: Int
+
     fun getMoreItems(): List<SelfossModel.Item>
     fun stats(): SelfossModel.Stats
     fun getTags(): List<SelfossModel.Tag>

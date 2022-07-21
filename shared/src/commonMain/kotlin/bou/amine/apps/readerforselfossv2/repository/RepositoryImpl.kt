@@ -2,14 +2,28 @@ package bou.amine.apps.readerforselfossv2.repository
 
 import bou.amine.apps.readerforselfossv2.rest.SelfossApi
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
+import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
 import com.russhwolf.settings.Settings
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
-class RepositoryImpl(private val api: SelfossApi) : Repository {
+class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDetailsService) : Repository {
     val settings = Settings()
 
     override lateinit var items: List<SelfossModel.Item>
     override lateinit var selectedItems: List<SelfossModel.Item>
+    override var baseUrl = apiDetails.getBaseUrl()
+
+    override var apiMajorVersion = 0
+
+    init {
+        // TODO: Dispatchers.IO not available in KMM, an alternative solution should be found
+        CoroutineScope(Dispatchers.Main).launch {
+            updateApiVersion()
+        }
+    }
 
     override fun getMoreItems(): List<SelfossModel.Item> {
         TODO("Not yet implemented")
@@ -92,5 +106,17 @@ class RepositoryImpl(private val api: SelfossApi) : Repository {
 
     override fun refreshLoginInformation() {
         api.refreshLoginInformation()
+        baseUrl = apiDetails.getBaseUrl()
+    }
+
+    private suspend fun updateApiVersion() {
+        // TODO: Handle connectivity issues
+        val fetchedVersion = api.version()
+        if (fetchedVersion != null) {
+            apiMajorVersion = fetchedVersion.getApiMajorVersion()
+            settings.putInt("apiVersionMajor", apiMajorVersion)
+        } else {
+            apiMajorVersion = settings.getInt("apiVersionMajor", 0)
+        }
     }
 }

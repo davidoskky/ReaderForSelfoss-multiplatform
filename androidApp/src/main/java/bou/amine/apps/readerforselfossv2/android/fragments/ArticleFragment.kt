@@ -9,7 +9,10 @@ import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.view.*
-import android.webkit.*
+import android.webkit.WebResourceResponse
+import android.webkit.WebSettings
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.browser.customtabs.CustomTabsIntent
@@ -23,10 +26,7 @@ import bou.amine.apps.readerforselfossv2.android.api.mercury.MercuryApi
 import bou.amine.apps.readerforselfossv2.android.api.mercury.ParsedContent
 import bou.amine.apps.readerforselfossv2.android.databinding.FragmentArticleBinding
 import bou.amine.apps.readerforselfossv2.android.model.*
-import bou.amine.apps.readerforselfossv2.android.persistence.AndroidDeviceDatabase
-import bou.amine.apps.readerforselfossv2.android.persistence.AndroidDeviceDatabaseService
 import bou.amine.apps.readerforselfossv2.android.persistence.database.AppDatabase
-import bou.amine.apps.readerforselfossv2.android.persistence.entities.AndroidItemEntity
 import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_1_2
 import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_2_3
 import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_3_4
@@ -36,11 +36,8 @@ import bou.amine.apps.readerforselfossv2.android.utils.customtabs.CustomTabActiv
 import bou.amine.apps.readerforselfossv2.android.utils.glide.getBitmapInputStream
 import bou.amine.apps.readerforselfossv2.android.utils.glide.loadMaybeBasicAuth
 import bou.amine.apps.readerforselfossv2.android.utils.network.isNetworkAvailable
-import bou.amine.apps.readerforselfossv2.rest.SelfossApiImpl
+import bou.amine.apps.readerforselfossv2.repository.Repository
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
-import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
-import bou.amine.apps.readerforselfossv2.service.SearchService
-import bou.amine.apps.readerforselfossv2.service.SelfossService
 import bou.amine.apps.readerforselfossv2.utils.DateUtils
 import bou.amine.apps.readerforselfossv2.utils.isEmptyOrNullOrNullString
 import com.bumptech.glide.Glide
@@ -52,8 +49,10 @@ import com.russhwolf.settings.Settings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import org.kodein.di.*
+import org.kodein.di.DI
+import org.kodein.di.DIAware
 import org.kodein.di.android.x.closestDI
+import org.kodein.di.instance
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -63,8 +62,6 @@ import java.util.*
 import java.util.concurrent.ExecutionException
 
 class ArticleFragment : Fragment(), DIAware {
-    private lateinit var dbService: AndroidDeviceDatabaseService
-    private lateinit var service: SelfossService<AndroidItemEntity>
     private var fontSize: Int = 16
     private lateinit var item: SelfossModel.Item
     private var mCustomTabActivityHelper: CustomTabActivityHelper? = null
@@ -83,7 +80,7 @@ class ArticleFragment : Fragment(), DIAware {
     private val binding get() = _binding!!
 
     override val di : DI by closestDI()
-    private val apiDetailsService : ApiDetailsService by instance()
+    private val repository: Repository by instance()
 
     private var settings = Settings()
 
@@ -104,10 +101,6 @@ class ArticleFragment : Fragment(), DIAware {
         config = Config()
 
         super.onCreate(savedInstanceState)
-
-        dbService = AndroidDeviceDatabaseService(AndroidDeviceDatabase(requireContext()), SearchService(DateUtils(apiDetailsService)))
-
-        service = SelfossService(SelfossApiImpl(apiDetailsService), dbService, SearchService(DateUtils(apiDetailsService)))
 
         val pi: ParecelableItem = requireArguments().getParcelable(ARG_ITEMS)!!
 
@@ -130,8 +123,8 @@ class ArticleFragment : Fragment(), DIAware {
             url = item.getLinkDecoded()
             contentText = item.content
             contentTitle = item.getTitleDecoded()
-            contentImage = item.getThumbnail(apiDetailsService.getBaseUrl())
-            contentSource = item.sourceAndDateText(DateUtils(apiDetailsService))
+            contentImage = item.getThumbnail(repository.baseUrl)
+            contentSource = item.sourceAndDateText(DateUtils(repository.apiMajorVersion))
             allImages = item.getImages()
 
             fontSize = settings.getString("reader_font_size", "16").toInt()
@@ -150,14 +143,6 @@ class ArticleFragment : Fragment(), DIAware {
             }
 
             refreshAlignment()
-
-            val api = SelfossApiImpl(
-//                requireContext(),
-//                requireActivity(),
-//                settings.getBoolean("isSelfSignedCert", false),
-//                prefs.getString("api_timeout", "-1")!!.toLong()
-                apiDetailsService
-            )
 
             fab = binding.fab
 
@@ -185,8 +170,7 @@ class ArticleFragment : Fragment(), DIAware {
                             R.id.unread_action -> if (context != null) {
                                 if (this@ArticleFragment.item.unread) {
                                     CoroutineScope(Dispatchers.IO).launch {
-                                        api.markAsRead(this@ArticleFragment.item.id.toString())
-                                        // TODO: Update in DB
+                                        repository.markAsRead(this@ArticleFragment.item.id.toString())
                                     }
                                     this@ArticleFragment.item.unread = false
                                     Toast.makeText(
@@ -196,8 +180,7 @@ class ArticleFragment : Fragment(), DIAware {
                                     ).show()
                                 } else {
                                     CoroutineScope(Dispatchers.IO).launch {
-                                        api.unmarkAsRead(this@ArticleFragment.item.id.toString())
-                                        // TODO: Update in DB
+                                        repository.unmarkAsRead(this@ArticleFragment.item.id.toString())
                                     }
                                     this@ArticleFragment.item.unread = true
                                     Toast.makeText(

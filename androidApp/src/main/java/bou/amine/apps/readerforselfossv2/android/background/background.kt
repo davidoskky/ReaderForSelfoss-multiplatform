@@ -24,6 +24,7 @@ import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATIO
 import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_3_4
 import bou.amine.apps.readerforselfossv2.android.utils.Config
 import bou.amine.apps.readerforselfossv2.android.utils.network.isNetworkAvailable
+import bou.amine.apps.readerforselfossv2.repository.Repository
 
 import bou.amine.apps.readerforselfossv2.rest.SelfossApiImpl
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
@@ -46,6 +47,7 @@ class LoadingWorker(val context: Context, params: WorkerParameters) : Worker(con
 
     override val di by lazy { (applicationContext as MyApp).di }
     private val apiDetailsService : ApiDetailsService by instance()
+    private val repository : Repository by instance()
 
 override fun doWork(): Result {
     val settings = Settings()
@@ -59,7 +61,7 @@ override fun doWork(): Result {
             apiDetailsService
         )
 
-        val dateUtils = DateUtils(apiDetailsService)
+        val dateUtils = DateUtils(repository.apiMajorVersion)
         val searchService = SearchService(dateUtils)
         val service = SelfossService(api, AndroidDeviceDatabaseService(AndroidDeviceDatabase(applicationContext), searchService), searchService)
 

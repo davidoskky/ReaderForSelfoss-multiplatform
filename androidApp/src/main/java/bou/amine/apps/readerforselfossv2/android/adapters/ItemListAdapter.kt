@@ -59,7 +59,7 @@ class ItemListAdapter(
 
             binding.title.setLinkTextColor(appColors.colorAccent)
 
-            binding.sourceTitleAndDate.text = itm.sourceAndDateText(DateUtils(apiDetailsService))
+            binding.sourceTitleAndDate.text = itm.sourceAndDateText(DateUtils(repository.apiMajorVersion))
 
             if (itm.getThumbnail(apiDetailsService.getBaseUrl()).isEmpty()) {
 

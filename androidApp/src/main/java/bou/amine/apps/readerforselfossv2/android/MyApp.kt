@@ -27,7 +27,7 @@ class MyApp : MultiDexApplication(), DIAware {
 
     override val di by DI.lazy {
         import(networkModule)
-        bind<Repository>() with singleton { RepositoryImpl(instance()) }
+        bind<Repository>() with singleton { RepositoryImpl(instance(), instance()) }
     }
 
     private lateinit var config: Config
