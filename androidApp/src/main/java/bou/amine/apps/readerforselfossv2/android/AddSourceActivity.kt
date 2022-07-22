@@ -2,27 +2,17 @@ package bou.amine.apps.readerforselfossv2.android
 
 import android.content.Intent
 import android.os.Bundle
-import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.appcompat.app.AppCompatActivity
 import android.view.View
-import android.widget.AdapterView
-import android.widget.ArrayAdapter
-import android.widget.EditText
-import android.widget.ProgressBar
-import android.widget.Spinner
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
+import androidx.appcompat.app.AppCompatActivity
+import androidx.constraintlayout.widget.ConstraintLayout
+import bou.amine.apps.readerforselfossv2.android.databinding.ActivityAddSourceBinding
 import bou.amine.apps.readerforselfossv2.android.themes.AppColors
 import bou.amine.apps.readerforselfossv2.android.themes.Toppings
 import bou.amine.apps.readerforselfossv2.android.utils.Config
 import bou.amine.apps.readerforselfossv2.android.utils.isBaseUrlValid
+import bou.amine.apps.readerforselfossv2.repository.Repository
 import com.ftinc.scoop.Scoop
-import bou.amine.apps.readerforselfossv2.android.databinding.ActivityAddSourceBinding
-
-import bou.amine.apps.readerforselfossv2.rest.SelfossApiImpl
-import bou.amine.apps.readerforselfossv2.rest.SelfossModel
-import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
-import com.russhwolf.settings.Settings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -34,14 +24,12 @@ import org.kodein.di.instance
 class AddSourceActivity : AppCompatActivity(), DIAware {
 
     private var mSpoutsValue: String? = null
-    private lateinit var api: SelfossApiImpl
 
     private lateinit var appColors: AppColors
     private lateinit var binding: ActivityAddSourceBinding
-    private val settings = Settings()
 
     override val di by closestDI()
-    private val apiDetailsService : ApiDetailsService by instance()
+    private val repository : Repository by instance()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         appColors = AppColors(this@AddSourceActivity)
@@ -77,24 +65,16 @@ class AddSourceActivity : AppCompatActivity(), DIAware {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.setDisplayShowHomeEnabled(true)
 
-        try {
-            api = SelfossApiImpl(
-//                this,
-//                this@AddSourceActivity,
-//                settings.getBoolean("isSelfSignedCert", false),
-//                prefs.getString("api_timeout", "-1")!!.toLong()
-                apiDetailsService
-            )
-        } catch (e: IllegalArgumentException) {
-            mustLoginToAddSource()
-        }
-
         maybeGetDetailsFromIntentSharing(intent, binding.sourceUri, binding.nameInput)
 
         binding.saveBtn.setTextColor(appColors.colorAccent)
 
         binding.saveBtn.setOnClickListener {
-            handleSaveSource(binding.tags, binding.nameInput.text.toString(), binding.sourceUri.text.toString(), api)
+            handleSaveSource(
+                binding.tags,
+                binding.nameInput.text.toString(),
+                binding.sourceUri.text.toString()
+            )
         }
     }
 
@@ -105,13 +85,12 @@ class AddSourceActivity : AppCompatActivity(), DIAware {
         if (config.baseUrl.isEmpty() || !config.baseUrl.isBaseUrlValid(this@AddSourceActivity)) {
             mustLoginToAddSource()
         } else {
-            handleSpoutsSpinner(binding.spoutsSpinner, api, binding.progress, binding.formContainer)
+            handleSpoutsSpinner(binding.spoutsSpinner, binding.progress, binding.formContainer)
         }
     }
 
     private fun handleSpoutsSpinner(
         spoutsSpinner: Spinner,
-        api: SelfossApiImpl?,
         mProgress: ProgressBar,
         formContainer: ConstraintLayout
     ) {
@@ -131,7 +110,7 @@ class AddSourceActivity : AppCompatActivity(), DIAware {
 
 
         CoroutineScope(Dispatchers.Main).launch {
-            var items = api!!.spouts()
+            val items = repository.getSpouts()
             if (items != null) {
 
                 val itemsStrings = items.map { it.value.name }
@@ -179,7 +158,7 @@ class AddSourceActivity : AppCompatActivity(), DIAware {
         finish()
     }
 
-    private fun handleSaveSource(tags: EditText, title: String, url: String, api: SelfossApiImpl) {
+    private fun handleSaveSource(tags: EditText, title: String, url: String) {
 
         val sourceDetailsUnavailable =
             title.isEmpty() || url.isEmpty() || mSpoutsValue == null || mSpoutsValue!!.isEmpty()
@@ -190,15 +169,14 @@ class AddSourceActivity : AppCompatActivity(), DIAware {
             }
             else -> {
                 CoroutineScope(Dispatchers.Main).launch {
-                    val response: SelfossModel.SuccessResponse? = api.createSourceForVersion(
-                            title,
-                            url,
-                            mSpoutsValue!!,
-                            tags.text.toString(),
-                            "",
-                            settings.getInt("apiVersionMajor", 0)
-                        )
-                    if (response != null) {
+                    val successfullyAddedSource = repository.createSource(
+                        title,
+                        url,
+                        mSpoutsValue!!,
+                        tags.text.toString(),
+                        "",
+                    )
+                    if (successfullyAddedSource) {
                         finish()
                     } else {
                         Toast.makeText(

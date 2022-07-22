@@ -37,8 +37,9 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         TODO("Not yet implemented")
     }
 
-    override fun getSpouts(): List<SelfossModel.Spout> {
-        TODO("Not yet implemented")
+    override suspend fun getSpouts(): Map<String, SelfossModel.Spout>? {
+        // TODO: Check success, store in DB
+        return api.spouts()
     }
 
     override fun getSources(): List<SelfossModel.Source> {
@@ -72,14 +73,29 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         TODO("Not yet implemented")
     }
 
-    override fun createSource(
+    override suspend fun createSource(
         title: String,
         url: String,
         spout: String,
         tags: String,
         filter: String
     ): Boolean {
-        TODO("Not yet implemented")
+        // TODO: Check connectivity
+        var result = false
+        val response = api.createSourceForVersion(
+            title,
+            url,
+            spout,
+            tags,
+            filter,
+            apiMajorVersion
+        )
+
+        if (response != null) {
+            result = true
+        }
+
+        return result
     }
 
     override fun deleteSource(id: Int): Boolean {

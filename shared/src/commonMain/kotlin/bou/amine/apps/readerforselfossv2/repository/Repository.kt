@@ -15,18 +15,18 @@ interface Repository {
     fun getMoreItems(): List<SelfossModel.Item>
     fun stats(): SelfossModel.Stats
     fun getTags(): List<SelfossModel.Tag>
-    fun getSpouts(): List<SelfossModel.Spout>
+    suspend fun getSpouts(): Map<String, SelfossModel.Spout>?
     fun getSources(): List<SelfossModel.Source>
     suspend fun markAsRead(id: String): Boolean
     suspend fun unmarkAsRead(id: String): Boolean
     suspend fun starr(id: String): Boolean
     suspend fun unstarr(id: String): Boolean
     fun markAllAsRead(ids: List<String>): Boolean
-    fun createSource(title: String,
-                     url: String,
-                     spout: String,
-                     tags: String,
-                     filter: String): Boolean
+    suspend fun createSource(title: String,
+                             url: String,
+                             spout: String,
+                             tags: String,
+                             filter: String): Boolean
     fun deleteSource(id: Int): Boolean
     fun updateRemote(): Boolean
     suspend fun login(): Boolean
