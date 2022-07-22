@@ -42,8 +42,9 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         return api.spouts()
     }
 
-    override fun getSources(): List<SelfossModel.Source> {
-        TODO("Not yet implemented")
+    override suspend fun getSources(): ArrayList<SelfossModel.Source>? {
+        // TODO: Check success
+        return api.sources()
     }
 
     override suspend fun markAsRead(id: String): Boolean {
@@ -98,8 +99,15 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         return result
     }
 
-    override fun deleteSource(id: Int): Boolean {
-        TODO("Not yet implemented")
+    override suspend fun deleteSource(id: Int): Boolean {
+        // TODO: Check connectivity, store in DB
+        var success = false
+        val response = api.deleteSource(id)
+        if (response != null) {
+            success = response.isSuccess
+        }
+
+        return success
     }
 
     override fun updateRemote(): Boolean {

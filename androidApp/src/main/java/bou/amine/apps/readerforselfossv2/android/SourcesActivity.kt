@@ -11,9 +11,8 @@ import bou.amine.apps.readerforselfossv2.android.databinding.ActivitySourcesBind
 import bou.amine.apps.readerforselfossv2.android.themes.AppColors
 import bou.amine.apps.readerforselfossv2.android.themes.Toppings
 import bou.amine.apps.readerforselfossv2.android.utils.network.isNetworkAvailable
-import bou.amine.apps.readerforselfossv2.rest.SelfossApiImpl
+import bou.amine.apps.readerforselfossv2.repository.Repository
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
-import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
 import com.ftinc.scoop.Scoop
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -28,7 +27,7 @@ class SourcesActivity : AppCompatActivity(), DIAware {
     private lateinit var binding: ActivitySourcesBinding
 
     override val di by closestDI()
-    private val apiDetailsService : ApiDetailsService by instance()
+    private val repository : Repository by instance()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         appColors = AppColors(this@SourcesActivity)
@@ -60,13 +59,6 @@ class SourcesActivity : AppCompatActivity(), DIAware {
         super.onResume()
         val mLayoutManager = LinearLayoutManager(this)
 
-        val api = SelfossApiImpl(
-//            this,
-//            this@SourcesActivity,
-//            settings.getBoolean("isSelfSignedCert", false),
-//            prefs.getString("api_timeout", "-1")!!.toLong()
-            apiDetailsService
-        )
         var items: ArrayList<SelfossModel.Source>
 
         binding.recyclerView.setHasFixedSize(true)
@@ -74,11 +66,11 @@ class SourcesActivity : AppCompatActivity(), DIAware {
 
         if (this@SourcesActivity.isNetworkAvailable(binding.recyclerView)) {
             CoroutineScope(Dispatchers.Main).launch {
-                val response = api.sources()
+                val response = repository.getSources()
                 if (response != null) {
                     items = response
-                    val mAdapter = SourcesListAdapter(this@SourcesActivity, items, api,
-                        apiDetailsService
+                    val mAdapter = SourcesListAdapter(
+                        this@SourcesActivity, items
                     )
                     binding.recyclerView.adapter = mAdapter
                     mAdapter.notifyDataSetChanged()

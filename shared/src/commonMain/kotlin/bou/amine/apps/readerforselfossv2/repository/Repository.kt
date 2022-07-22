@@ -16,7 +16,7 @@ interface Repository {
     fun stats(): SelfossModel.Stats
     fun getTags(): List<SelfossModel.Tag>
     suspend fun getSpouts(): Map<String, SelfossModel.Spout>?
-    fun getSources(): List<SelfossModel.Source>
+    suspend fun getSources(): ArrayList<SelfossModel.Source>?
     suspend fun markAsRead(id: String): Boolean
     suspend fun unmarkAsRead(id: String): Boolean
     suspend fun starr(id: String): Boolean
@@ -27,7 +27,7 @@ interface Repository {
                              spout: String,
                              tags: String,
                              filter: String): Boolean
-    fun deleteSource(id: Int): Boolean
+    suspend fun deleteSource(id: Int): Boolean
     fun updateRemote(): Boolean
     suspend fun login(): Boolean
     fun refreshLoginInformation()
