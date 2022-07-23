@@ -20,9 +20,8 @@ import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATIO
 import bou.amine.apps.readerforselfossv2.android.themes.AppColors
 import bou.amine.apps.readerforselfossv2.android.themes.Toppings
 import bou.amine.apps.readerforselfossv2.android.utils.toggleStar
-import bou.amine.apps.readerforselfossv2.rest.SelfossApiImpl
+import bou.amine.apps.readerforselfossv2.repository.Repository
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
-import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
 import com.ftinc.scoop.Scoop
 import com.russhwolf.settings.Settings
 import kotlinx.coroutines.CoroutineScope
@@ -39,8 +38,6 @@ class ReaderActivity : AppCompatActivity(), DIAware {
     private lateinit var userIdentifier: String
     private lateinit var appColors: AppColors
 
-    private lateinit var api: SelfossApiImpl
-
     private lateinit var toolbarMenu: Menu
 
     private lateinit var db: AppDatabase
@@ -51,7 +48,7 @@ class ReaderActivity : AppCompatActivity(), DIAware {
     private val ALIGN_LEFT = 2
 
     override val di by closestDI()
-    private val apiDetailsService : ApiDetailsService by instance()
+    private val repository : Repository by instance()
 
     private fun showMenuItem(willAddToFavorite: Boolean) {
         if (willAddToFavorite) {
@@ -96,14 +93,6 @@ class ReaderActivity : AppCompatActivity(), DIAware {
         markOnScroll = settings.getBoolean("mark_on_scroll", false)
         activeAlignment = settings.getInt("text_align", JUSTIFY)
 
-        api = SelfossApiImpl(
-//            this,
-//            this@ReaderActivity,
-//            settings.getBoolean("isSelfSignedCert", false),
-//            prefs.getString("api_timeout", "-1")!!.toLong()
-            apiDetailsService
-        )
-
         if (allItems.isEmpty()) {
             finish()
         }
@@ -125,8 +114,8 @@ class ReaderActivity : AppCompatActivity(), DIAware {
     private fun readItem(item: SelfossModel.Item) {
         if (markOnScroll) {
                 CoroutineScope(Dispatchers.IO).launch {
-                    api.markAsRead(item.id.toString())
-                    // TODO: update item in DB
+                    repository.markAsRead(item.id.toString())
+                    // TODO: Handle failure
                 }
             }
     }
@@ -223,14 +212,14 @@ class ReaderActivity : AppCompatActivity(), DIAware {
             R.id.star -> {
                 if (allItems[binding.pager.currentItem].starred) {
                     CoroutineScope(Dispatchers.IO).launch {
-                        api.unstarr(allItems[binding.pager.currentItem].id.toString())
-                        // TODO: update in DB
+                        repository.unstarr(allItems[binding.pager.currentItem].id)
+                        // TODO: Handle failure
                     }
                     afterUnsave()
                 } else {
                     CoroutineScope(Dispatchers.IO).launch {
-                        api.starr(allItems[binding.pager.currentItem].id.toString())
-                        // TODO: update in DB
+                        repository.starr(allItems[binding.pager.currentItem].id)
+                        // TODO: Handle failure
                     }
                     afterSave()
                 }

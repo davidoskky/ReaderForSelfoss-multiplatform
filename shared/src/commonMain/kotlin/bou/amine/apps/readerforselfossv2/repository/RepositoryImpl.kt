@@ -58,15 +58,15 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         api.unmarkAsRead(id)
         return true    }
 
-    override suspend fun starr(id: String): Boolean {
+    override suspend fun starr(id: Int): Boolean {
         // TODO: Check success, store in DB
-        api.starr(id)
+        api.starr(id.toString())
         return true
     }
 
-    override suspend fun unstarr(id: String): Boolean {
+    override suspend fun unstarr(id: Int): Boolean {
         // TODO: Check success, store in DB
-        api.unstarr(id)
+        api.unstarr(id.toString())
         return true
     }
 

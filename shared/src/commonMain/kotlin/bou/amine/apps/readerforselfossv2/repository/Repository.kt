@@ -19,8 +19,8 @@ interface Repository {
     suspend fun getSources(): ArrayList<SelfossModel.Source>?
     suspend fun markAsRead(id: String): Boolean
     suspend fun unmarkAsRead(id: String): Boolean
-    suspend fun starr(id: String): Boolean
-    suspend fun unstarr(id: String): Boolean
+    suspend fun starr(id: Int): Boolean
+    suspend fun unstarr(id: Int): Boolean
     fun markAllAsRead(ids: List<String>): Boolean
     suspend fun createSource(title: String,
                              url: String,

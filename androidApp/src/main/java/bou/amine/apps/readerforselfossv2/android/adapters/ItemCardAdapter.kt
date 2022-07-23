@@ -119,14 +119,14 @@ class ItemCardAdapter(
                 if (c.isNetworkAvailable()) {
                     if (item.starred) {
                         CoroutineScope(Dispatchers.IO).launch {
-                            repository.unstarr(item.id.toString())
+                            repository.unstarr(item.id)
                             // TODO: Handle failure
                         }
                         item.starred = false
                         binding.favButton.isSelected = false
                     } else {
                         CoroutineScope(Dispatchers.IO).launch {
-                            repository.starr(item.id.toString())
+                            repository.starr(item.id)
                             // TODO: Handle failure
                         }
                         item.starred = true
