@@ -83,7 +83,7 @@ abstract class ItemsAdapter<VH : RecyclerView.ViewHolder?> : RecyclerView.Adapte
     private fun readItemAtIndex(position: Int, showSnackbar: Boolean = true) {
         val i = items[position]
         CoroutineScope(Dispatchers.IO).launch {
-            repository.markAsRead(i.id.toString())
+            repository.markAsRead(i.id)
             // TODO: update db
 
         }
@@ -102,7 +102,7 @@ abstract class ItemsAdapter<VH : RecyclerView.ViewHolder?> : RecyclerView.Adapte
 
     private fun unreadItemAtIndex(position: Int, showSnackbar: Boolean = true) {
         CoroutineScope(Dispatchers.IO).launch {
-            repository.unmarkAsRead(items[position].id.toString())
+            repository.unmarkAsRead(items[position].id)
             // Todo: SharedItems.unreadItem(app, api, db, items[position])
             // TODO: update db
 

@@ -114,7 +114,7 @@ class ReaderActivity : AppCompatActivity(), DIAware {
     private fun readItem(item: SelfossModel.Item) {
         if (markOnScroll) {
                 CoroutineScope(Dispatchers.IO).launch {
-                    repository.markAsRead(item.id.toString())
+                    repository.markAsRead(item.id)
                     // TODO: Handle failure
                 }
             }

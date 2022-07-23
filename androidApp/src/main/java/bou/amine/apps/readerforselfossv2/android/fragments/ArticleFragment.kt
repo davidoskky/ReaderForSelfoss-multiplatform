@@ -170,7 +170,7 @@ class ArticleFragment : Fragment(), DIAware {
                             R.id.unread_action -> if (context != null) {
                                 if (this@ArticleFragment.item.unread) {
                                     CoroutineScope(Dispatchers.IO).launch {
-                                        repository.markAsRead(this@ArticleFragment.item.id.toString())
+                                        repository.markAsRead(this@ArticleFragment.item.id)
                                     }
                                     this@ArticleFragment.item.unread = false
                                     Toast.makeText(
@@ -180,7 +180,7 @@ class ArticleFragment : Fragment(), DIAware {
                                     ).show()
                                 } else {
                                     CoroutineScope(Dispatchers.IO).launch {
-                                        repository.unmarkAsRead(this@ArticleFragment.item.id.toString())
+                                        repository.unmarkAsRead(this@ArticleFragment.item.id)
                                     }
                                     this@ArticleFragment.item.unread = true
                                     Toast.makeText(

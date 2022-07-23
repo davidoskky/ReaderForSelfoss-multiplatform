@@ -17,11 +17,11 @@ interface Repository {
     fun getTags(): List<SelfossModel.Tag>
     suspend fun getSpouts(): Map<String, SelfossModel.Spout>?
     suspend fun getSources(): ArrayList<SelfossModel.Source>?
-    suspend fun markAsRead(id: String): Boolean
-    suspend fun unmarkAsRead(id: String): Boolean
+    suspend fun markAsRead(id: Int): Boolean
+    suspend fun unmarkAsRead(id: Int): Boolean
     suspend fun starr(id: Int): Boolean
     suspend fun unstarr(id: Int): Boolean
-    fun markAllAsRead(ids: List<String>): Boolean
+    fun markAllAsRead(ids: List<Int>): Boolean
     suspend fun createSource(title: String,
                              url: String,
                              spout: String,

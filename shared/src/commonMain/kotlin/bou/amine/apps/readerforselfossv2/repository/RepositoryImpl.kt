@@ -47,15 +47,15 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         return api.sources()
     }
 
-    override suspend fun markAsRead(id: String): Boolean {
+    override suspend fun markAsRead(id: Int): Boolean {
         // TODO: Check success, store in DB
-        api.markAsRead(id)
+        api.markAsRead(id.toString())
         return true
     }
 
-    override suspend fun unmarkAsRead(id: String): Boolean {
+    override suspend fun unmarkAsRead(id: Int): Boolean {
         // TODO: Check success, store in DB
-        api.unmarkAsRead(id)
+        api.unmarkAsRead(id.toString())
         return true    }
 
     override suspend fun starr(id: Int): Boolean {
@@ -70,7 +70,7 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         return true
     }
 
-    override fun markAllAsRead(ids: List<String>): Boolean {
+    override fun markAllAsRead(ids: List<Int>): Boolean {
         TODO("Not yet implemented")
     }
 
