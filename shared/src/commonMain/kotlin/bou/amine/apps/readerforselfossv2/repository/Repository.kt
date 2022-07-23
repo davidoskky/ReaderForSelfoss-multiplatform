@@ -5,14 +5,15 @@ import bou.amine.apps.readerforselfossv2.rest.SelfossModel
 interface Repository {
 
     // TODO: remove the items variables in favor of storing everything in the database
-    var items: List<SelfossModel.Item>
-    var selectedItems: List<SelfossModel.Item>
+    var items: ArrayList<SelfossModel.Item>
+    var selectedItems: ArrayList<SelfossModel.Item>
     var baseUrl: String
 
     // API
     var apiMajorVersion: Int
 
-    fun getMoreItems(): List<SelfossModel.Item>
+    suspend fun getNewerItems(): ArrayList<SelfossModel.Item>
+    suspend fun getOlderItems(): ArrayList<SelfossModel.Item>
     fun stats(): SelfossModel.Stats
     fun getTags(): List<SelfossModel.Tag>
     suspend fun getSpouts(): Map<String, SelfossModel.Spout>?
