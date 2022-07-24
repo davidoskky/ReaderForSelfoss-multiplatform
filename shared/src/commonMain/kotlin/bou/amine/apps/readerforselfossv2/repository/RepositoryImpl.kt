@@ -19,8 +19,17 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
 
     override var baseUrl = apiDetails.getBaseUrl()
 
-    // TODO: Validate the string in the setter
-    override var selectedType = "read"
+    override var selectedType = "unread"
+        set(value) {
+            field = when (value) {
+                "all" -> "all"
+                "unread" -> "unread"
+                "read" -> "read"
+                "starred" -> "starred"
+                else -> "all"
+            }
+        }
+
     private var selectedTag: SelfossModel.Tag? = null
     private var selectedSource: SelfossModel.Source? = null
     private var search: String? = null
