@@ -213,7 +213,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
 
         handleSettings()
 
-        getApiMajorVersion()
+        apiVersionMajor = repository.apiMajorVersion
 
         getElementsAccordingToTab()
     }
@@ -341,16 +341,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
 
         if (fromTabShortcut) {
             binding.bottomBar.selectTab(elementsShown - 1)
-        }
-    }
-
-    private fun getApiMajorVersion() {
-        CoroutineScope(Dispatchers.IO).launch {
-            val version = api.version()
-            if (version != null) {
-                apiVersionMajor = version.getApiMajorVersion()
-                settings.putInt("apiVersionMajor", apiVersionMajor)
-            }
         }
     }
 
