@@ -36,8 +36,11 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
 
     override var apiMajorVersion = 0
     override var badgeUnread = 0
+    set(value) {field = if (value < 0) { 0 } else { value } }
     override var badgeAll = 0
+    set(value) {field = if (value < 0) { 0 } else { value } }
     override var badgeStarred = 0
+    set(value) {field = if (value < 0) { 0 } else { value } }
 
     init {
         // TODO: Dispatchers.IO not available in KMM, an alternative solution should be found
@@ -121,8 +124,9 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         return success
     }
 
-    override fun getTags(): List<SelfossModel.Tag> {
-        TODO("Not yet implemented")
+    override suspend fun getTags(): List<SelfossModel.Tag>? {
+        // TODO: Check success, store in DB
+        return api.tags()
     }
 
     override suspend fun getSpouts(): Map<String, SelfossModel.Spout>? {
@@ -144,9 +148,13 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
 
     override suspend fun unmarkAsRead(id: Int): Boolean {
         // TODO: Check success, store in DB
-        api.unmarkAsRead(id.toString())
-        badgeUnread += 1
-        return true    }
+        val success = api.unmarkAsRead(id.toString())?.isSuccess == true
+
+        if (success) {
+            markAsReadLocally(id)
+        }
+        return success
+    }
 
     override suspend fun starr(id: Int): Boolean {
         // TODO: Check success, store in DB
@@ -162,8 +170,25 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         return true
     }
 
-    override fun markAllAsRead(ids: List<Int>): Boolean {
-        TODO("Not yet implemented")
+    override suspend fun markAllAsRead(ids: List<Int>): Boolean {
+        // TODO: Check Internet connectivity, store in DB
+
+        val success = api.markAllAsRead(ids.map { it.toString() })?.isSuccess == true
+
+        if (success) {
+            for (id in ids) {
+                markAsReadLocally(id)
+            }
+        }
+        return success
+    }
+
+    private fun markAsReadLocally(id: Int) {
+        // TODO: Mark also in the database
+        if (items.first {it.id == id}.unread) {
+            items.first {it.id == id}.unread = false
+            badgeUnread -= 1
+        }
     }
 
     override suspend fun createSource(

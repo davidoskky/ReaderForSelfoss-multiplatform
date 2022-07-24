@@ -34,7 +34,6 @@ import bou.amine.apps.readerforselfossv2.android.persistence.AndroidDeviceDataba
 import bou.amine.apps.readerforselfossv2.android.persistence.AndroidDeviceDatabaseService
 import bou.amine.apps.readerforselfossv2.android.persistence.database.AppDatabase
 import bou.amine.apps.readerforselfossv2.android.persistence.entities.ActionEntity
-import bou.amine.apps.readerforselfossv2.android.persistence.entities.AndroidItemEntity
 import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_1_2
 import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_2_3
 import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_3_4
@@ -49,13 +48,11 @@ import bou.amine.apps.readerforselfossv2.android.utils.network.isNetworkAvailabl
 import bou.amine.apps.readerforselfossv2.android.utils.persistence.toEntity
 import bou.amine.apps.readerforselfossv2.android.utils.persistence.toView
 import bou.amine.apps.readerforselfossv2.repository.Repository
-
-import bou.amine.apps.readerforselfossv2.utils.DateUtils
 import bou.amine.apps.readerforselfossv2.rest.SelfossApiImpl
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
 import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
 import bou.amine.apps.readerforselfossv2.service.SearchService
-import bou.amine.apps.readerforselfossv2.service.SelfossService
+import bou.amine.apps.readerforselfossv2.utils.DateUtils
 import bou.amine.apps.readerforselfossv2.utils.longHash
 import com.ashokvarma.bottomnavigation.BottomNavigationBar
 import com.ashokvarma.bottomnavigation.BottomNavigationItem
@@ -92,7 +89,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
     private lateinit var dataBase: AndroidDeviceDatabase
     private lateinit var dbService: AndroidDeviceDatabaseService
     private lateinit var searchService: SearchService
-    private lateinit var service: SelfossService<AndroidItemEntity>
     private val MENU_PREFERENCES = 12302
     private val DRAWER_ID_TAGS = 100101L
     private val DRAWER_ID_HIDDEN_TAGS = 101100L
@@ -204,7 +200,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
         dataBase = AndroidDeviceDatabase(applicationContext)
         searchService = SearchService(DateUtils(repository.apiMajorVersion))
         dbService = AndroidDeviceDatabaseService(dataBase, searchService)
-        service = SelfossService(api, dbService, searchService)
 
         handleBottomBar()
         handleDrawer()
@@ -1154,7 +1149,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
 
                         if (this@HomeActivity.isNetworkAvailable(null, offlineShortcut)) {
                             CoroutineScope(Dispatchers.Main).launch {
-                                val success = service.readAll(items.map { it.id.toString() }, applicationContext.isNetworkAvailable())
+                                val success = repository.markAllAsRead(items.map { it.id })
                                 if (success) {
                                     Toast.makeText(
                                         this@HomeActivity,

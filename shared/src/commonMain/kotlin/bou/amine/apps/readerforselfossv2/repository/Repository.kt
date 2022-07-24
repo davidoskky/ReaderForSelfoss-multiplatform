@@ -19,14 +19,14 @@ interface Repository {
     suspend fun getNewerItems(): ArrayList<SelfossModel.Item>
     suspend fun getOlderItems(): ArrayList<SelfossModel.Item>
     suspend fun reloadBadges(): Boolean
-    fun getTags(): List<SelfossModel.Tag>
+    suspend fun getTags(): List<SelfossModel.Tag>?
     suspend fun getSpouts(): Map<String, SelfossModel.Spout>?
     suspend fun getSources(): ArrayList<SelfossModel.Source>?
     suspend fun markAsRead(id: Int): Boolean
     suspend fun unmarkAsRead(id: Int): Boolean
     suspend fun starr(id: Int): Boolean
     suspend fun unstarr(id: Int): Boolean
-    fun markAllAsRead(ids: List<Int>): Boolean
+    suspend fun markAllAsRead(ids: List<Int>): Boolean
     suspend fun createSource(title: String,
                              url: String,
                              spout: String,
