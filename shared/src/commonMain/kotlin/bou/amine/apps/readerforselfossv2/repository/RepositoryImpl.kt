@@ -35,11 +35,15 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
     private var search: String? = null
 
     override var apiMajorVersion = 0
+    override var badgeUnread = 0
+    override var badgeAll = 0
+    override var badgeStarred = 0
 
     init {
         // TODO: Dispatchers.IO not available in KMM, an alternative solution should be found
         CoroutineScope(Dispatchers.Main).launch {
             updateApiVersion()
+            reloadBadges()
         }
     }
 
@@ -104,8 +108,17 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         return tmpItems
     }
 
-    override fun stats(): SelfossModel.Stats {
-        TODO("Not yet implemented")
+    override suspend fun reloadBadges(): Boolean {
+        // TODO: Check connectivity, calculate from DB
+        var success = false
+        val response = api.stats()
+        if (response != null) {
+            badgeUnread = response.unread
+            badgeAll = response.total
+            badgeStarred = response.starred
+            success = true
+        }
+        return success
     }
 
     override fun getTags(): List<SelfossModel.Tag> {
@@ -125,23 +138,27 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
     override suspend fun markAsRead(id: Int): Boolean {
         // TODO: Check success, store in DB
         api.markAsRead(id.toString())
+        badgeUnread -= 1
         return true
     }
 
     override suspend fun unmarkAsRead(id: Int): Boolean {
         // TODO: Check success, store in DB
         api.unmarkAsRead(id.toString())
+        badgeUnread += 1
         return true    }
 
     override suspend fun starr(id: Int): Boolean {
         // TODO: Check success, store in DB
         api.starr(id.toString())
+        badgeStarred += 1
         return true
     }
 
     override suspend fun unstarr(id: Int): Boolean {
         // TODO: Check success, store in DB
         api.unstarr(id.toString())
+        badgeStarred -= 1
         return true
     }
 

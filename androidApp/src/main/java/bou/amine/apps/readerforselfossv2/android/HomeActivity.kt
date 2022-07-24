@@ -1044,8 +1044,10 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
     private fun reloadBadges() {
         if (displayUnreadCount || displayAllCount) {
             CoroutineScope(Dispatchers.Main).launch {
-                service.reloadBadges(applicationContext.isNetworkAvailable())
-                reloadBadgeContent()
+                if (applicationContext.isNetworkAvailable()) {
+                    repository.reloadBadges()
+                    reloadBadgeContent()
+                }
             }
         }
     }
@@ -1053,15 +1055,15 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
     private fun reloadBadgeContent() {
         if (displayUnreadCount) {
             tabNewBadge
-                .setText(searchService.badgeUnread.toString())
+                .setText(repository.badgeUnread.toString())
                 .maybeShow()
         }
         if (displayAllCount) {
             tabArchiveBadge
-                .setText(searchService.badgeAll.toString())
+                .setText(repository.badgeAll.toString())
                 .maybeShow()
             tabStarredBadge
-                .setText(searchService.badgeStarred.toString())
+                .setText(repository.badgeStarred.toString())
                 .maybeShow()
         }
     }

@@ -12,10 +12,13 @@ interface Repository {
 
     // API
     var apiMajorVersion: Int
+    var badgeUnread: Int
+    var badgeAll: Int
+    var badgeStarred: Int
 
     suspend fun getNewerItems(): ArrayList<SelfossModel.Item>
     suspend fun getOlderItems(): ArrayList<SelfossModel.Item>
-    fun stats(): SelfossModel.Stats
+    suspend fun reloadBadges(): Boolean
     fun getTags(): List<SelfossModel.Tag>
     suspend fun getSpouts(): Map<String, SelfossModel.Spout>?
     suspend fun getSources(): ArrayList<SelfossModel.Source>?
