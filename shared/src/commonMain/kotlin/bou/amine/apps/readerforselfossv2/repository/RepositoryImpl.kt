@@ -24,7 +24,7 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
     override var baseUrl = apiDetails.getBaseUrl()
 
     // TODO: Validate the string in the setter
-    private var selectedType = "new"
+    override var selectedType = "read"
     private var selectedTag: SelfossModel.Tag? = null
     private var selectedSource: SelfossModel.Source? = null
     private var search: String? = null
@@ -41,7 +41,7 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
     override suspend fun getNewerItems(): ArrayList<SelfossModel.Item> {
         // TODO: Check connectivity
         val fetchedItems = api.getItems(selectedType,
-            settings.getInt("prefer_api_items_number", 200),
+            settings.getString("prefer_api_items_number", "200").toInt(),
             offset = 0,
             selectedTag?.tag,
             selectedSource?.id?.toLong(),
@@ -50,14 +50,14 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         if (fetchedItems != null) {
             storeItems(fetchedItems)
         }
-        return selectedItems
+        return filterSelectedItems(items)
     }
 
     override suspend fun getOlderItems(): ArrayList<SelfossModel.Item> {
         // TODO: Check connectivity
         val offset = selectedItems.size
         val fetchedItems = api.getItems(selectedType,
-            settings.getInt("prefer_api_items_number", 200),
+            settings.getString("prefer_api_items_number", "200").toInt(),
             offset,
             selectedTag?.tag,
             selectedSource?.id?.toLong(),
@@ -66,7 +66,7 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         if (fetchedItems != null) {
             storeItems(fetchedItems)
         }
-        return selectedItems
+        return filterSelectedItems(items)
     }
 
     private fun storeItems(fetchedItems: List<SelfossModel.Item>) {
@@ -81,7 +81,22 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
 
     private fun sortItems(items: ArrayList<SelfossModel.Item>) {
         val dateUtils = DateUtils(apiMajorVersion)
-        items.sortBy { dateUtils.parseDate(it.datetime) }
+        items.sortByDescending { dateUtils.parseDate(it.datetime) }
+    }
+
+    private fun filterSelectedItems(items: ArrayList<SelfossModel.Item>): ArrayList<SelfossModel.Item> {
+        val tmpItems = ArrayList(items)
+        if (selectedType == "unread") {
+            tmpItems.removeAll { !it.unread }
+        } else if (selectedType == "starred") {
+            tmpItems.removeAll { !it.starred }
+        }
+
+        if (selectedTag != null) {
+            tmpItems.removeAll { !it.tags.contains(selectedTag!!.tag) }
+        }
+
+        return tmpItems
     }
 
     override fun stats(): SelfossModel.Stats {

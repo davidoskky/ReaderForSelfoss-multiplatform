@@ -9,6 +9,8 @@ interface Repository {
     var selectedItems: ArrayList<SelfossModel.Item>
     var baseUrl: String
 
+    var selectedType: String
+
     // API
     var apiMajorVersion: Int
 

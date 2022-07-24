@@ -937,6 +937,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
     ) {
         fun doGetAccordingToTab() {
             when (elementsShown) {
+                // TODO: These three functions are not required, one is enough
                 UNREAD_SHOWN -> getUnRead(appendResults)
                 READ_SHOWN -> getRead(appendResults)
                 FAV_SHOWN -> getStarred(appendResults)
@@ -957,11 +958,11 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
     private fun getUnRead(appendResults: Boolean = false) {
         CoroutineScope(Dispatchers.Main).launch {
             binding.swipeRefreshLayout.isRefreshing = true
-            val apiItems = service.getUnreadItems(itemsNumber, offset, applicationContext.isNetworkAvailable())
-            if (appendResults) {
-                apiItems?.let { items.addAll(it) }
+            repository.selectedType = "unread"
+            items = if (appendResults) {
+                repository.getNewerItems()
             } else {
-                items = apiItems.orEmpty() as ArrayList<SelfossModel.Item>
+                repository.getOlderItems()
             }
             binding.swipeRefreshLayout.isRefreshing = false
             handleListResult()
@@ -971,11 +972,11 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
     private fun getRead(appendResults: Boolean = false) {
         CoroutineScope(Dispatchers.Main).launch {
             binding.swipeRefreshLayout.isRefreshing = true
-            val apiItems = service.getReadItems(itemsNumber, offset, applicationContext.isNetworkAvailable())
-            if (appendResults) {
-                apiItems?.let { items.addAll(it) }
+            repository.selectedType = "all"
+            items = if (appendResults) {
+                repository.getNewerItems()
             } else {
-                items = apiItems.orEmpty() as ArrayList<SelfossModel.Item>
+                repository.getOlderItems()
             }
             binding.swipeRefreshLayout.isRefreshing = false
             handleListResult()
@@ -985,11 +986,11 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
     private fun getStarred(appendResults: Boolean = false) {
         CoroutineScope(Dispatchers.Main).launch {
             binding.swipeRefreshLayout.isRefreshing = true
-            val apiItems = service.getStarredItems(itemsNumber, offset, applicationContext.isNetworkAvailable())
-            if (appendResults) {
-                apiItems?.let { items.addAll(it) }
+            repository.selectedType = "starred"
+            items = if (appendResults) {
+                repository.getNewerItems()
             } else {
-                items = apiItems.orEmpty() as ArrayList<SelfossModel.Item>
+                repository.getOlderItems()
             }
             binding.swipeRefreshLayout.isRefreshing = false
             handleListResult()
