@@ -747,7 +747,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
             fun sourcesApiCall() {
                 if (this@HomeActivity.isNetworkAvailable(null, offlineShortcut) && updateSources) {
                     CoroutineScope(Dispatchers.Main).launch {
-                        val response = api.sources()
+                        val response = repository.getSources()
                         if (response != null) {
                             sources = response
                             val apiDrawerData = DrawerData(tags, sources)
@@ -766,10 +766,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
 
             if (this@HomeActivity.isNetworkAvailable(null, offlineShortcut) && updateSources) {
                 CoroutineScope(Dispatchers.IO).launch {
-                    val response = api.tags()
-                    if (response != null) {
-                        tags = response
-                    }
+                    val tags = repository.getTags()
                     sourcesApiCall()
                 }
             }
@@ -1125,9 +1122,10 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
                 if (this@HomeActivity.isNetworkAvailable(null, offlineShortcut)) {
                     needsConfirmation(R.string.menu_home_refresh, R.string.refresh_dialog_message) {
                         Toast.makeText(this, R.string.refresh_in_progress, Toast.LENGTH_SHORT).show()
+                        // TODO: Use Dispatchers.IO
                         CoroutineScope(Dispatchers.Main).launch {
-                            val status = api.update()
-                            if (status != null && status.isSuccess) {
+                            val updatedRemote = repository.updateRemote()
+                            if (updatedRemote) {
                                 Toast.makeText(
                                     this@HomeActivity,
                                     R.string.refresh_success_response, Toast.LENGTH_LONG
@@ -1219,8 +1217,8 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
     }
 
     private fun handleOfflineActions() {
-        fun doAndReportOnFail(call: SelfossModel.SuccessResponse?, action: ActionEntity) {
-            if (call != null && call.isSuccess) {
+        fun doAndReportOnFail(success: Boolean, action: ActionEntity) {
+            if (success) {
                 thread {
                     db.actionsDao().delete(action)
                 }
@@ -1233,10 +1231,10 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
 
                 actions.forEach { action ->
                     when {
-                        action.read -> doAndReportOnFail(api.markAsRead(action.articleId), action)
-                        action.unread -> doAndReportOnFail(api.unmarkAsRead(action.articleId), action)
-                        action.starred -> doAndReportOnFail(api.starr(action.articleId), action)
-                        action.unstarred -> doAndReportOnFail(api.unstarr(action.articleId), action)
+                        action.read -> doAndReportOnFail(repository.markAsRead(action.articleId.toInt()), action)
+                        action.unread -> doAndReportOnFail(repository.markAsRead(action.articleId.toInt()), action)
+                        action.starred -> doAndReportOnFail(repository.markAsRead(action.articleId.toInt()), action)
+                        action.unstarred -> doAndReportOnFail(repository.markAsRead(action.articleId.toInt()), action)
                     }
                 }
             }

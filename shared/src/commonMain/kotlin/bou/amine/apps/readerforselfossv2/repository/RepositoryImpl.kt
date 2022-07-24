@@ -185,8 +185,14 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         return success
     }
 
-    override fun updateRemote(): Boolean {
-        TODO("Not yet implemented")
+    override suspend fun updateRemote(): Boolean {
+        // TODO: Handle connectivity issues
+        val response = api.update()
+        return if (response != null) {
+            response.isSuccess
+        } else {
+            false
+        }
     }
 
     override suspend fun login(): Boolean {

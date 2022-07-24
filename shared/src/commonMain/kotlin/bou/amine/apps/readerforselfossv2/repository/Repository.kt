@@ -30,7 +30,7 @@ interface Repository {
                              tags: String,
                              filter: String): Boolean
     suspend fun deleteSource(id: Int): Boolean
-    fun updateRemote(): Boolean
+    suspend fun updateRemote(): Boolean
     suspend fun login(): Boolean
     fun refreshLoginInformation()
 }
