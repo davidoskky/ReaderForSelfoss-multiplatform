@@ -17,10 +17,6 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
     get() { return ArrayList(field) }
     set(value) { field = ArrayList(value) }
 
-    override var selectedItems = ArrayList<SelfossModel.Item>()
-    get() { return ArrayList(field) }
-    set(value) { field = ArrayList(value) }
-
     override var baseUrl = apiDetails.getBaseUrl()
 
     // TODO: Validate the string in the setter
@@ -55,7 +51,7 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
 
     override suspend fun getOlderItems(): ArrayList<SelfossModel.Item> {
         // TODO: Check connectivity
-        val offset = selectedItems.size
+        val offset = filterSelectedItems(items).size
         val fetchedItems = api.getItems(selectedType,
             settings.getString("prefer_api_items_number", "200").toInt(),
             offset,

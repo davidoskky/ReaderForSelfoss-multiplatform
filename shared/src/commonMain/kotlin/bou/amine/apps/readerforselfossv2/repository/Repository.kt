@@ -6,7 +6,6 @@ interface Repository {
 
     // TODO: remove the items variables in favor of storing everything in the database
     var items: ArrayList<SelfossModel.Item>
-    var selectedItems: ArrayList<SelfossModel.Item>
     var baseUrl: String
 
     var selectedType: String

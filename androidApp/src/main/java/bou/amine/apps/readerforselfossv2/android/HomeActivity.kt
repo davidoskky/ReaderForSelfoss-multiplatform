@@ -103,7 +103,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
     private val FAV_SHOWN = 3
 
     private var items: ArrayList<SelfossModel.Item> = ArrayList()
-    private var allItems: ArrayList<SelfossModel.Item> = ArrayList()
 
     private var internalBrowser = false
     private var articleViewer = false
@@ -206,8 +205,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
         searchService = SearchService(DateUtils(repository.apiMajorVersion))
         dbService = AndroidDeviceDatabaseService(dataBase, searchService)
         service = SelfossService(api, dbService, searchService)
-        items = ArrayList()
-        allItems = ArrayList()
 
         handleBottomBar()
         handleDrawer()
@@ -229,7 +226,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
         )
         binding.swipeRefreshLayout.setOnRefreshListener {
             offlineShortcut = false
-            allItems = ArrayList()
             lastFetchDone = false
             handleDrawerItems()
             CoroutineScope(Dispatchers.Main).launch {
@@ -549,7 +545,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
                                         textColor = ColorHolder.fromColor(Color.WHITE)
                                         color = ColorHolder.fromColor(appColors.colorAccent) }
                                     onDrawerItemClickListener = { _,_,_ ->
-                                        allItems = ArrayList()
                                         searchService.tagFilter = it.tag
                                         searchService.sourceFilter = null
                                         searchService.sourceIDFilter = null
@@ -602,7 +597,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
                                     textColor = ColorHolder.fromColor(Color.WHITE)
                                     color = ColorHolder.fromColor(appColors.colorAccent) }
                                 onDrawerItemClickListener = { _,_,_ ->
-                                    allItems = ArrayList()
                                     searchService.tagFilter = it.tag
                                     searchService.sourceFilter = null
                                     searchService.sourceIDFilter = null
@@ -638,7 +632,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
                             identifier = source.id.toLong()
                             iconUrl = source.getIcon(apiDetailsService.getBaseUrl())
                             onDrawerItemClickListener = { _,_,_ ->
-                                allItems = ArrayList()
                                 searchService.sourceIDFilter = source.id.toLong()
                                 searchService.sourceFilter = source.title
                                 searchService.tagFilter = null
@@ -661,7 +654,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
                         identifier = DRAWER_ID_FILTERS
                         badgeRes = R.string.drawer_action_clear
                         onDrawerItemClickListener = { _,_,_ ->
-                            allItems = ArrayList()
                             searchService.sourceFilter = null
                             searchService.sourceIDFilter = null
                             searchService.tagFilter = null
