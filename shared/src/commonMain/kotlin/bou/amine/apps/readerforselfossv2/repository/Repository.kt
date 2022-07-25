@@ -35,5 +35,7 @@ interface Repository {
     suspend fun deleteSource(id: Int): Boolean
     suspend fun updateRemote(): Boolean
     suspend fun login(): Boolean
-    fun refreshLoginInformation()
+    fun refreshLoginInformation(url: String, login: String, password: String,
+                                httpLogin: String, httpPassword: String,
+                                isSelfSignedCert: Boolean)
 }

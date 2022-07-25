@@ -203,13 +203,7 @@ class LoginActivity() : AppCompatActivity(), DIAware {
         } else {
             showProgress(true)
 
-            settings.putString("url", url)
-            settings.putString("login", login)
-            settings.putString("httpUserName", httpLogin)
-            settings.putString("password", password)
-            settings.putString("httpPassword", httpPassword)
-            settings.putBoolean("isSelfSignedCert", isWithSelfSignedCert)
-            repository.refreshLoginInformation()
+            repository.refreshLoginInformation(url, login, password, httpLogin, httpPassword, isWithSelfSignedCert)
 
             if (this@LoginActivity.isNetworkAvailable(this@LoginActivity.findViewById(R.id.loginForm))) {
                 CoroutineScope(Dispatchers.IO).launch {

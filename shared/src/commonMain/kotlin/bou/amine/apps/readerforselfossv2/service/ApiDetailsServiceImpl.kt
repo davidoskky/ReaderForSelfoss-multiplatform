@@ -47,7 +47,6 @@ class ApiDetailsServiceImpl : ApiDetailsService {
         _password = settings.getString("password", "")
         _userName = settings.getString("login", "")
         _baseUrl = settings.getString("url", "")
-        _baseUrl = settings.getString("url", "")
         _apiVersion = settings.getInt("apiVersionMajor", -1)
     }
 }

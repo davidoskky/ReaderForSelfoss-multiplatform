@@ -275,9 +275,17 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         return result
     }
 
-    override fun refreshLoginInformation() {
+    override fun refreshLoginInformation(url: String, login: String, password: String,
+                                         httpLogin: String, httpPassword: String,
+                                         isSelfSignedCert: Boolean) {
+        settings.putString("url", url)
+        settings.putString("login", login)
+        settings.putString("httpUserName", httpLogin)
+        settings.putString("password", password)
+        settings.putString("httpPassword", httpPassword)
+        settings.putBoolean("isSelfSignedCert", isSelfSignedCert)
+        baseUrl = url
         api.refreshLoginInformation()
-        baseUrl = apiDetails.getBaseUrl()
     }
 
     private suspend fun updateApiVersion() {
