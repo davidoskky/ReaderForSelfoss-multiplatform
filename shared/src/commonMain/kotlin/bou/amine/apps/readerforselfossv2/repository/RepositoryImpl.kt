@@ -140,15 +140,8 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
     }
 
     override suspend fun markAsRead(id: Int): Boolean {
-        // TODO: Check success, store in DB
-        api.markAsRead(id.toString())
-        badgeUnread -= 1
-        return true
-    }
-
-    override suspend fun unmarkAsRead(id: Int): Boolean {
-        // TODO: Check success, store in DB
-        val success = api.unmarkAsRead(id.toString())?.isSuccess == true
+        // TODO: Check internet connection
+        val success = api.markAsRead(id.toString())?.isSuccess == true
 
         if (success) {
             markAsReadLocally(id)
@@ -156,18 +149,34 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         return success
     }
 
+    override suspend fun unmarkAsRead(id: Int): Boolean {
+        // TODO: Check internet connection
+        val success = api.unmarkAsRead(id.toString())?.isSuccess == true
+
+        if (success) {
+            unmarkAsReadLocally(id)
+        }
+        return success
+    }
+
     override suspend fun starr(id: Int): Boolean {
         // TODO: Check success, store in DB
-        api.starr(id.toString())
-        badgeStarred += 1
-        return true
+        val success = api.starr(id.toString())?.isSuccess == true
+
+        if (success) {
+            starrLocally(id)
+        }
+        return success
     }
 
     override suspend fun unstarr(id: Int): Boolean {
-        // TODO: Check success, store in DB
-        api.unstarr(id.toString())
-        badgeStarred -= 1
-        return true
+        // TODO: Check internet connection
+        val success = api.unstarr(id.toString())?.isSuccess == true
+
+        if (success) {
+            unstarrLocally(id)
+        }
+        return success
     }
 
     override suspend fun markAllAsRead(ids: List<Int>): Boolean {
@@ -188,6 +197,30 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         if (items.first {it.id == id}.unread) {
             items.first {it.id == id}.unread = false
             badgeUnread -= 1
+        }
+    }
+
+    private fun unmarkAsReadLocally(id: Int) {
+        // TODO: Mark also in the database
+        if (!items.first {it.id == id}.unread) {
+            items.first {it.id == id}.unread = true
+            badgeUnread += 1
+        }
+    }
+
+    private fun starrLocally(id: Int) {
+        // TODO: Mark also in the database
+        if (!items.first {it.id == id}.starred) {
+            items.first {it.id == id}.starred = true
+            badgeStarred += 1
+        }
+    }
+
+    private fun unstarrLocally(id: Int) {
+        // TODO: Mark also in the database
+        if (items.first {it.id == id}.starred) {
+            items.first {it.id == id}.starred = false
+            badgeStarred -= 1
         }
     }
 
