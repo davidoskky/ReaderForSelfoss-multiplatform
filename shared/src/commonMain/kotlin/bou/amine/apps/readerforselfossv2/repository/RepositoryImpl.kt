@@ -232,7 +232,6 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         filter: String
     ): Boolean {
         // TODO: Check connectivity
-        var result = false
         val response = api.createSourceForVersion(
             title,
             url,
@@ -242,11 +241,7 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
             apiMajorVersion
         )
 
-        if (response != null) {
-            result = true
-        }
-
-        return result
+        return response != null
     }
 
     override suspend fun deleteSource(id: Int): Boolean {
@@ -263,11 +258,7 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
     override suspend fun updateRemote(): Boolean {
         // TODO: Handle connectivity issues
         val response = api.update()
-        return if (response != null) {
-            response.isSuccess
-        } else {
-            false
-        }
+        return response?.isSuccess ?: false
     }
 
     override suspend fun login(): Boolean {
