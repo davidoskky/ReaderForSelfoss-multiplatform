@@ -60,14 +60,14 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
             search)
 
         if (fetchedItems != null) {
-            storeItems(fetchedItems)
+            items = ArrayList(fetchedItems)
         }
-        return filterSelectedItems(items)
+        return items
     }
 
     override suspend fun getOlderItems(): ArrayList<SelfossModel.Item> {
         // TODO: Check connectivity
-        val offset = filterSelectedItems(items).size
+        val offset = items.size
         val fetchedItems = api.getItems(selectedType,
             settings.getString("prefer_api_items_number", "200").toInt(),
             offset,
@@ -76,9 +76,9 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
             search)
 
         if (fetchedItems != null) {
-            storeItems(fetchedItems)
+            items = ArrayList(fetchedItems)
         }
-        return filterSelectedItems(items)
+        return items
     }
 
     private fun storeItems(fetchedItems: List<SelfossModel.Item>) {
