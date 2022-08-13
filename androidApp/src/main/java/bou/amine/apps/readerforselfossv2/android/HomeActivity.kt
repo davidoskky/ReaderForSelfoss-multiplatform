@@ -740,7 +740,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
 
             if (this@HomeActivity.isNetworkAvailable(null, offlineShortcut) && updateSources) {
                 CoroutineScope(Dispatchers.IO).launch {
-                    val tags = repository.getTags()
+                    tags = repository.getTags()
                     sourcesApiCall()
                 }
             }
