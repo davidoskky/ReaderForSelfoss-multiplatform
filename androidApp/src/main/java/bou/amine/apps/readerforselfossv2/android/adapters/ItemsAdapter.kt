@@ -80,17 +80,14 @@ abstract class ItemsAdapter<VH : RecyclerView.ViewHolder?> : RecyclerView.Adapte
         val i = items[position]
         CoroutineScope(Dispatchers.IO).launch {
             repository.markAsRead(i.id)
-            // TODO: update db
-
         }
-        // Todo:
-//        if (SharedItems.displayedItems == "unread") {
-//            items.remove(i)
-//            notifyItemRemoved(position)
-//            updateItems(items)
-//        } else {
-//            notifyItemChanged(position)
-//        }
+        if (repository.displayedItems == "unread") {
+            items.remove(i)
+            notifyItemRemoved(position)
+            updateItems(items)
+        } else {
+            notifyItemChanged(position)
+        }
         if (showSnackbar) {
             unmarkSnackbar(i, position)
         }

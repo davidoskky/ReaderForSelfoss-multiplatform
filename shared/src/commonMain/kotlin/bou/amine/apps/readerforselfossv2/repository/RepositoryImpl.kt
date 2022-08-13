@@ -300,4 +300,6 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
             apiMajorVersion = settings.getInt("apiVersionMajor", 0)
         }
     }
+
+    // TODO: Handle offline actions
 }
