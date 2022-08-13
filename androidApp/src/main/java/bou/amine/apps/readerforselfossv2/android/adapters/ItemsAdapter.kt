@@ -10,7 +10,6 @@ import bou.amine.apps.readerforselfossv2.android.themes.AppColors
 import bou.amine.apps.readerforselfossv2.android.utils.Config
 import bou.amine.apps.readerforselfossv2.repository.Repository
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
-import bou.amine.apps.readerforselfossv2.service.SearchService
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -25,7 +24,6 @@ abstract class ItemsAdapter<VH : RecyclerView.ViewHolder?> : RecyclerView.Adapte
     abstract val app: Activity
     abstract val appColors: AppColors
     abstract val config: Config
-    abstract val searchService: SearchService
     abstract val updateItems: (ArrayList<SelfossModel.Item>) -> Unit
 
     fun updateAllItems(items: ArrayList<SelfossModel.Item>) {

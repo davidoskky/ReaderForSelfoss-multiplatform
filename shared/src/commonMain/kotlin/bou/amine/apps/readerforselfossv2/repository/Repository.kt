@@ -8,13 +8,20 @@ interface Repository {
     var items: ArrayList<SelfossModel.Item>
     var baseUrl: String
 
-    var selectedType: String
+    var displayedItems: String
+
+    // Settings
+    var itemsCaching: Boolean
 
     // API
     var apiMajorVersion: Int
     var badgeUnread: Int
     var badgeAll: Int
     var badgeStarred: Int
+
+    var tagFilter: SelfossModel.Tag?
+    var sourceFilter: SelfossModel.Source?
+    var searchFilter: String?
 
     suspend fun getNewerItems(): ArrayList<SelfossModel.Item>
     suspend fun getOlderItems(): ArrayList<SelfossModel.Item>

@@ -49,8 +49,6 @@ import bou.amine.apps.readerforselfossv2.android.utils.persistence.toEntity
 import bou.amine.apps.readerforselfossv2.android.utils.persistence.toView
 import bou.amine.apps.readerforselfossv2.repository.Repository
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
-import bou.amine.apps.readerforselfossv2.service.SearchService
-import bou.amine.apps.readerforselfossv2.utils.DateUtils
 import bou.amine.apps.readerforselfossv2.utils.longHash
 import com.ashokvarma.bottomnavigation.BottomNavigationBar
 import com.ashokvarma.bottomnavigation.BottomNavigationItem
@@ -86,7 +84,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
 
     private lateinit var dataBase: AndroidDeviceDatabase
     private lateinit var dbService: AndroidDeviceDatabaseService
-    private lateinit var searchService: SearchService
     private val MENU_PREFERENCES = 12302
     private val DRAWER_ID_TAGS = 100101L
     private val DRAWER_ID_HIDDEN_TAGS = 101100L
@@ -186,8 +183,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
         customTabActivityHelper = CustomTabActivityHelper()
 
         dataBase = AndroidDeviceDatabase(applicationContext)
-        searchService = SearchService(DateUtils(repository.apiMajorVersion))
-        dbService = AndroidDeviceDatabaseService(dataBase, searchService)
+        //dbService = AndroidDeviceDatabaseService(dataBase, searchService)
 
         handleBottomBar()
         handleDrawer()
@@ -370,7 +366,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
         userIdentifier = settings.getString("unique_id", "")
         displayAccountHeader = settings.getBoolean("account_header_displaying", false)
         infiniteScroll = settings.getBoolean("infinite_loading", false)
-        searchService.itemsCaching = settings.getBoolean("items_caching", false)
         updateSources = settings.getBoolean("update_sources", true)
         markOnScroll = settings.getBoolean("mark_on_scroll", false)
         hiddenTags = if (settings.getString("hidden_tags", "").isNotEmpty()) {
@@ -518,9 +513,8 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
                                         textColor = ColorHolder.fromColor(Color.WHITE)
                                         color = ColorHolder.fromColor(appColors.colorAccent) }
                                     onDrawerItemClickListener = { _,_,_ ->
-                                        searchService.tagFilter = it.tag
-                                        searchService.sourceFilter = null
-                                        searchService.sourceIDFilter = null
+                                        repository.tagFilter = it
+                                        repository.sourceFilter = null
                                         getElementsAccordingToTab()
                                         fetchOnEmptyList()
                                         false
@@ -570,9 +564,8 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
                                     textColor = ColorHolder.fromColor(Color.WHITE)
                                     color = ColorHolder.fromColor(appColors.colorAccent) }
                                 onDrawerItemClickListener = { _,_,_ ->
-                                    searchService.tagFilter = it.tag
-                                    searchService.sourceFilter = null
-                                    searchService.sourceIDFilter = null
+                                    repository.tagFilter = it
+                                    repository.sourceFilter = null
                                     getElementsAccordingToTab()
                                     fetchOnEmptyList()
                                     false
@@ -605,9 +598,8 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
                             identifier = source.id.toLong()
                             iconUrl = source.getIcon(repository.baseUrl)
                             onDrawerItemClickListener = { _,_,_ ->
-                                searchService.sourceIDFilter = source.id.toLong()
-                                searchService.sourceFilter = source.title
-                                searchService.tagFilter = null
+                                repository.sourceFilter = source
+                                repository.tagFilter = null
                                 getElementsAccordingToTab()
                                 fetchOnEmptyList()
                                 false
@@ -627,9 +619,8 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
                         identifier = DRAWER_ID_FILTERS
                         badgeRes = R.string.drawer_action_clear
                         onDrawerItemClickListener = { _,_,_ ->
-                            searchService.sourceFilter = null
-                            searchService.sourceIDFilter = null
-                            searchService.tagFilter = null
+                            repository.sourceFilter = null
+                            repository.tagFilter = null
                             binding.mainDrawer.setSelectionAtPosition(-1)
                             getElementsAccordingToTab()
                             fetchOnEmptyList()
@@ -920,7 +911,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
     private fun getUnRead(appendResults: Boolean = false) {
         CoroutineScope(Dispatchers.Main).launch {
             binding.swipeRefreshLayout.isRefreshing = true
-            repository.selectedType = "unread"
+            repository.displayedItems = "unread"
             items = if (appendResults) {
                 repository.getNewerItems()
             } else {
@@ -934,7 +925,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
     private fun getRead(appendResults: Boolean = false) {
         CoroutineScope(Dispatchers.Main).launch {
             binding.swipeRefreshLayout.isRefreshing = true
-            repository.selectedType = "all"
+            repository.displayedItems = "all"
             items = if (appendResults) {
                 repository.getNewerItems()
             } else {
@@ -948,7 +939,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
     private fun getStarred(appendResults: Boolean = false) {
         CoroutineScope(Dispatchers.Main).launch {
             binding.swipeRefreshLayout.isRefreshing = true
-            repository.selectedType = "starred"
+            repository.displayedItems = "starred"
             items = if (appendResults) {
                 repository.getNewerItems()
             } else {
@@ -984,8 +975,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
                             fullHeightCards,
                             appColors,
                             userIdentifier,
-                            config,
-                            searchService
+                            config
                         ) {
                             updateItems(it)
                         }
@@ -1000,8 +990,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
                             articleViewer,
                             userIdentifier,
                             appColors,
-                            config,
-                            searchService
+                            config
                         ) {
                             updateItems(it)
                         }
@@ -1064,7 +1053,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
 
     override fun onQueryTextChange(p0: String?): Boolean {
         if (p0.isNullOrBlank()) {
-            searchService.searchFilter = null
+            repository.searchFilter = null
             getElementsAccordingToTab()
             fetchOnEmptyList()
         }
@@ -1072,7 +1061,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
     }
 
     override fun onQueryTextSubmit(p0: String?): Boolean {
-        searchService.searchFilter = p0
+        repository.searchFilter = p0
         getElementsAccordingToTab()
         fetchOnEmptyList()
         return false
@@ -1171,10 +1160,10 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
 
     private fun maxItemNumber(): Int =
         when (elementsShown) {
-            UNREAD_SHOWN -> searchService.badgeUnread
-            READ_SHOWN -> searchService.badgeAll
-            FAV_SHOWN -> searchService.badgeStarred
-            else -> searchService.badgeUnread // if !elementsShown then unread are fetched.
+            UNREAD_SHOWN -> repository.badgeUnread
+            READ_SHOWN -> repository.badgeAll
+            FAV_SHOWN -> repository.badgeStarred
+            else -> repository.badgeUnread // if !elementsShown then unread are fetched.
         }
 
     private fun updateItems(adapterItems: ArrayList<SelfossModel.Item>) {

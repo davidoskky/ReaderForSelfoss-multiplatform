@@ -19,7 +19,6 @@ import bou.amine.apps.readerforselfossv2.android.utils.glide.circularBitmapDrawa
 import bou.amine.apps.readerforselfossv2.android.utils.network.isNetworkAvailable
 import bou.amine.apps.readerforselfossv2.repository.Repository
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
-import bou.amine.apps.readerforselfossv2.service.SearchService
 import bou.amine.apps.readerforselfossv2.utils.DateUtils
 import com.amulyakhare.textdrawable.TextDrawable
 import com.amulyakhare.textdrawable.util.ColorGenerator
@@ -42,7 +41,6 @@ class ItemCardAdapter(
     override val appColors: AppColors,
     override val userIdentifier: String,
     override val config: Config,
-    override val searchService: SearchService,
     override val updateItems: (ArrayList<SelfossModel.Item>) -> Unit
 ) : ItemsAdapter<ItemCardAdapter.ViewHolder>() {
     private val c: Context = app.baseContext
@@ -155,8 +153,7 @@ class ItemCardAdapter(
                     customTabsIntent,
                     internalBrowser,
                     articleViewer,
-                    app,
-                    searchService
+                    app
                 )
             }
         }

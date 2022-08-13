@@ -19,7 +19,7 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
 
     override var baseUrl = apiDetails.getBaseUrl()
 
-    override var selectedType = "unread"
+    override var displayedItems = "unread"
         set(value) {
             field = when (value) {
                 "all" -> "all"
@@ -30,9 +30,11 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
             }
         }
 
-    private var selectedTag: SelfossModel.Tag? = null
-    private var selectedSource: SelfossModel.Source? = null
-    private var search: String? = null
+    override var tagFilter: SelfossModel.Tag? = null
+    override var sourceFilter: SelfossModel.Source? = null
+    override var searchFilter: String? = null
+
+    override var itemsCaching = settings.getBoolean("items_caching", false)
 
     override var apiMajorVersion = 0
     override var badgeUnread = 0
@@ -52,12 +54,12 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
 
     override suspend fun getNewerItems(): ArrayList<SelfossModel.Item> {
         // TODO: Check connectivity
-        val fetchedItems = api.getItems(selectedType,
+        val fetchedItems = api.getItems(displayedItems,
             settings.getString("prefer_api_items_number", "200").toInt(),
             offset = 0,
-            selectedTag?.tag,
-            selectedSource?.id?.toLong(),
-            search)
+            tagFilter?.tag,
+            sourceFilter?.id?.toLong(),
+            searchFilter)
 
         if (fetchedItems != null) {
             items = ArrayList(fetchedItems)
@@ -68,12 +70,12 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
     override suspend fun getOlderItems(): ArrayList<SelfossModel.Item> {
         // TODO: Check connectivity
         val offset = items.size
-        val fetchedItems = api.getItems(selectedType,
+        val fetchedItems = api.getItems(displayedItems,
             settings.getString("prefer_api_items_number", "200").toInt(),
             offset,
-            selectedTag?.tag,
-            selectedSource?.id?.toLong(),
-            search)
+            tagFilter?.tag,
+            sourceFilter?.id?.toLong(),
+            searchFilter)
 
         if (fetchedItems != null) {
             items = ArrayList(fetchedItems)
@@ -98,14 +100,14 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
 
     private fun filterSelectedItems(items: ArrayList<SelfossModel.Item>): ArrayList<SelfossModel.Item> {
         val tmpItems = ArrayList(items)
-        if (selectedType == "unread") {
+        if (displayedItems == "unread") {
             tmpItems.removeAll { !it.unread }
-        } else if (selectedType == "starred") {
+        } else if (displayedItems == "starred") {
             tmpItems.removeAll { !it.starred }
         }
 
-        if (selectedTag != null) {
-            tmpItems.removeAll { !it.tags.contains(selectedTag!!.tag) }
+        if (tagFilter != null) {
+            tmpItems.removeAll { !it.tags.contains(tagFilter!!.tag) }
         }
 
         return tmpItems

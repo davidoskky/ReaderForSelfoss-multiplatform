@@ -33,7 +33,6 @@ class ItemListAdapter(
     override val userIdentifier: String,
     override val appColors: AppColors,
     override val config: Config,
-    override val searchService: SearchService,
     override val updateItems: (ArrayList<SelfossModel.Item>) -> Unit
 ) : ItemsAdapter<ItemListAdapter.ViewHolder>() {
     private val generator: ColorGenerator = ColorGenerator.MATERIAL
@@ -100,8 +99,7 @@ class ItemListAdapter(
                     customTabsIntent,
                     internalBrowser,
                     articleViewer,
-                    app,
-                    searchService
+                    app
                 )
             }
         }

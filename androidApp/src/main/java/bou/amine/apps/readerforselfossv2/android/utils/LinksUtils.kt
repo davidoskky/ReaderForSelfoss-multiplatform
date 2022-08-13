@@ -10,18 +10,17 @@ import android.net.Uri
 import android.os.Build
 import android.text.Spannable
 import android.text.style.ClickableSpan
-import androidx.browser.customtabs.CustomTabsIntent
 import android.util.Patterns
 import android.view.MotionEvent
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
+import androidx.browser.customtabs.CustomTabsIntent
 import bou.amine.apps.readerforselfossv2.android.R
 import bou.amine.apps.readerforselfossv2.android.ReaderActivity
 import bou.amine.apps.readerforselfossv2.android.model.getLinkDecoded
 import bou.amine.apps.readerforselfossv2.android.utils.customtabs.CustomTabActivityHelper
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
-import bou.amine.apps.readerforselfossv2.service.SearchService
 import bou.amine.apps.readerforselfossv2.utils.toStringUriWithHttp
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
@@ -79,12 +78,10 @@ fun Context.openItemUrlInternally(
     linkDecoded: String,
     customTabsIntent: CustomTabsIntent,
     articleViewer: Boolean,
-    app: Activity,
-    searchService: SearchService
+    app: Activity
 ) {
     if (articleViewer) {
         ReaderActivity.allItems = allItems
-        searchService.position = currentItem
         val intent = Intent(this, ReaderActivity::class.java)
         intent.putExtra("currentItem", currentItem)
         app.startActivity(intent)
@@ -123,8 +120,7 @@ fun Context.openItemUrl(
     customTabsIntent: CustomTabsIntent,
     internalBrowser: Boolean,
     articleViewer: Boolean,
-    app: Activity,
-    searchService: SearchService
+    app: Activity
 ) {
 
     if (!linkDecoded.isUrlValid()) {
@@ -143,8 +139,7 @@ fun Context.openItemUrl(
                 linkDecoded,
                 customTabsIntent,
                 articleViewer,
-                app,
-                searchService
+                app
             )
         } else {
             this.openItemUrlInternalBrowser(
