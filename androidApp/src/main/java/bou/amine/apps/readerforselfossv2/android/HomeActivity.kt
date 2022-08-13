@@ -110,7 +110,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
     private var updateSources: Boolean = true
     private var markOnScroll: Boolean = false
     private var hiddenTags: List<String> = emptyList()
-    private var apiVersionMajor: Int = 0
 
     private var periodicRefresh = false
     private var refreshMinutes: Long = 360L
@@ -191,8 +190,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
         handleSwipeRefreshLayout()
 
         handleSettings()
-
-        apiVersionMajor = repository.apiMajorVersion
 
         getElementsAccordingToTab()
     }
@@ -380,8 +377,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
         if (refreshMinutes <= 15) {
             refreshMinutes = 15
         }
-
-        apiVersionMajor = settings.getInt("apiVersionMajor", 0)
     }
 
     private fun handleThemeBinding() {
