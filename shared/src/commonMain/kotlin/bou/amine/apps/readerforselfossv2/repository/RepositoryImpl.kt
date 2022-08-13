@@ -271,8 +271,7 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
                 result = true
             }
         } catch (cause: Throwable) {
-            Napier.e(cause.message!!, tag = "1")
-            Napier.e(cause.stackTraceToString(),tag = "1")
+            Napier.e(cause.stackTraceToString(),tag = "RepositoryImpl.updateRemote")
         }
         return result
     }
