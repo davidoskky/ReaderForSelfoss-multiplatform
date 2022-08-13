@@ -48,9 +48,7 @@ import bou.amine.apps.readerforselfossv2.android.utils.network.isNetworkAvailabl
 import bou.amine.apps.readerforselfossv2.android.utils.persistence.toEntity
 import bou.amine.apps.readerforselfossv2.android.utils.persistence.toView
 import bou.amine.apps.readerforselfossv2.repository.Repository
-import bou.amine.apps.readerforselfossv2.rest.SelfossApiImpl
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
-import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
 import bou.amine.apps.readerforselfossv2.service.SearchService
 import bou.amine.apps.readerforselfossv2.utils.DateUtils
 import bou.amine.apps.readerforselfossv2.utils.longHash
@@ -124,7 +122,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
     private lateinit var tabNewBadge: TextBadgeItem
     private lateinit var tabArchiveBadge: TextBadgeItem
     private lateinit var tabStarredBadge: TextBadgeItem
-    private lateinit var api: SelfossApiImpl
     private lateinit var customTabActivityHelper: CustomTabActivityHelper
     private lateinit var appColors: AppColors
     private var offset: Int = 0
@@ -145,7 +142,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
     private lateinit var config: Config
 
     override val di by closestDI()
-    private val apiDetailsService : ApiDetailsService by instance()
     private val repository : Repository by instance()
 
     data class DrawerData(val tags: List<SelfossModel.Tag>?, val sources: List<SelfossModel.Source>?)
@@ -188,14 +184,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
 
 
         customTabActivityHelper = CustomTabActivityHelper()
-
-        api = SelfossApiImpl(
-//            this,
-//            this@HomeActivity,
-//            settings.getBoolean("isSelfSignedCert", false),
-//            sharedPref.getString("api_timeout", "-1")!!.toLong()
-            apiDetailsService
-        )
 
         dataBase = AndroidDeviceDatabase(applicationContext)
         searchService = SearchService(DateUtils(repository.apiMajorVersion))
@@ -615,7 +603,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
                         val item = PrimaryDrawerItem().apply {
                             nameText = source.getTitleDecoded()
                             identifier = source.id.toLong()
-                            iconUrl = source.getIcon(apiDetailsService.getBaseUrl())
+                            iconUrl = source.getIcon(repository.baseUrl)
                             onDrawerItemClickListener = { _,_,_ ->
                                 searchService.sourceIDFilter = source.id.toLong()
                                 searchService.sourceFilter = source.title
@@ -989,7 +977,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
                         ItemCardAdapter(
                             this,
                             items,
-                            apiDetailsService,
                             db,
                             customTabActivityHelper,
                             internalBrowser,
@@ -1007,7 +994,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
                         ItemListAdapter(
                             this,
                             items,
-                            apiDetailsService,
                             db,
                             customTabActivityHelper,
                             internalBrowser,

@@ -15,7 +15,6 @@ import bou.amine.apps.readerforselfossv2.android.utils.glide.bitmapCenterCrop
 import bou.amine.apps.readerforselfossv2.android.utils.glide.circularBitmapDrawable
 import bou.amine.apps.readerforselfossv2.repository.Repository
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
-import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
 import bou.amine.apps.readerforselfossv2.service.SearchService
 import bou.amine.apps.readerforselfossv2.utils.DateUtils
 import com.amulyakhare.textdrawable.TextDrawable
@@ -27,7 +26,6 @@ import org.kodein.di.instance
 class ItemListAdapter(
     override val app: Activity,
     override var items: ArrayList<SelfossModel.Item>,
-    override val apiDetailsService: ApiDetailsService,
     override val db: AppDatabase,
     private val helper: CustomTabActivityHelper,
     private val internalBrowser: Boolean,
@@ -61,9 +59,9 @@ class ItemListAdapter(
 
             binding.sourceTitleAndDate.text = itm.sourceAndDateText(DateUtils(repository.apiMajorVersion))
 
-            if (itm.getThumbnail(apiDetailsService.getBaseUrl()).isEmpty()) {
+            if (itm.getThumbnail(repository.baseUrl).isEmpty()) {
 
-                if (itm.getIcon(apiDetailsService.getBaseUrl()).isEmpty()) {
+                if (itm.getIcon(repository.baseUrl).isEmpty()) {
                     val color = generator.getColor(itm.getSourceTitle())
 
                     val drawable =
@@ -74,10 +72,10 @@ class ItemListAdapter(
 
                     binding.itemImage.setImageDrawable(drawable)
                 } else {
-                    c.circularBitmapDrawable(config, itm.getIcon(apiDetailsService.getBaseUrl()), binding.itemImage)
+                    c.circularBitmapDrawable(config, itm.getIcon(repository.baseUrl), binding.itemImage)
                 }
             } else {
-                c.bitmapCenterCrop(config, itm.getThumbnail(apiDetailsService.getBaseUrl()), binding.itemImage)
+                c.bitmapCenterCrop(config, itm.getThumbnail(repository.baseUrl), binding.itemImage)
             }
         }
     }

@@ -19,7 +19,6 @@ import bou.amine.apps.readerforselfossv2.android.utils.glide.circularBitmapDrawa
 import bou.amine.apps.readerforselfossv2.android.utils.network.isNetworkAvailable
 import bou.amine.apps.readerforselfossv2.repository.Repository
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
-import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
 import bou.amine.apps.readerforselfossv2.service.SearchService
 import bou.amine.apps.readerforselfossv2.utils.DateUtils
 import com.amulyakhare.textdrawable.TextDrawable
@@ -35,7 +34,6 @@ import org.kodein.di.instance
 class ItemCardAdapter(
     override val app: Activity,
     override var items: ArrayList<SelfossModel.Item>,
-    override val apiDetailsService: ApiDetailsService,
     override val db: AppDatabase,
     private val helper: CustomTabActivityHelper,
     private val internalBrowser: Boolean,
@@ -78,16 +76,16 @@ class ItemCardAdapter(
                 binding.itemImage.scaleType = ScaleType.CENTER_CROP
             }
 
-            if (itm.getThumbnail(apiDetailsService.getBaseUrl()).isEmpty()) {
+            if (itm.getThumbnail(repository.baseUrl).isEmpty()) {
                 binding.itemImage.visibility = View.GONE
                 Glide.with(c).clear(binding.itemImage)
                 binding.itemImage.setImageDrawable(null)
             } else {
                 binding.itemImage.visibility = View.VISIBLE
-                c.bitmapCenterCrop(config, itm.getThumbnail(apiDetailsService.getBaseUrl()), binding.itemImage)
+                c.bitmapCenterCrop(config, itm.getThumbnail(repository.baseUrl), binding.itemImage)
             }
 
-            if (itm.getIcon(apiDetailsService.getBaseUrl()).isEmpty()) {
+            if (itm.getIcon(repository.baseUrl).isEmpty()) {
                 val color = generator.getColor(itm.getSourceTitle())
 
                 val drawable =
@@ -97,7 +95,7 @@ class ItemCardAdapter(
                                 .build(itm.getSourceTitle().toTextDrawableString(c), color)
                 binding.sourceImage.setImageDrawable(drawable)
             } else {
-                c.circularBitmapDrawable(config, itm.getIcon(apiDetailsService.getBaseUrl()), binding.sourceImage)
+                c.circularBitmapDrawable(config, itm.getIcon(repository.baseUrl), binding.sourceImage)
             }
         }
     }

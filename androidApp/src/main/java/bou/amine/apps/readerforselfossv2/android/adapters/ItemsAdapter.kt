@@ -10,7 +10,6 @@ import bou.amine.apps.readerforselfossv2.android.themes.AppColors
 import bou.amine.apps.readerforselfossv2.android.utils.Config
 import bou.amine.apps.readerforselfossv2.repository.Repository
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
-import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
 import bou.amine.apps.readerforselfossv2.service.SearchService
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.CoroutineScope
@@ -20,7 +19,6 @@ import org.kodein.di.DIAware
 
 abstract class ItemsAdapter<VH : RecyclerView.ViewHolder?> : RecyclerView.Adapter<VH>(), DIAware {
     abstract var items: ArrayList<SelfossModel.Item>
-    abstract val apiDetailsService: ApiDetailsService
     abstract val repository: Repository
     abstract val db: AppDatabase
     abstract val userIdentifier: String
