@@ -18,6 +18,7 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
     set(value) { field = ArrayList(value) }
 
     override var baseUrl = apiDetails.getBaseUrl()
+    private lateinit var dateUtils: DateUtils
 
     override var displayedItems = "unread"
         set(value) {
@@ -48,6 +49,7 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         // TODO: Dispatchers.IO not available in KMM, an alternative solution should be found
         CoroutineScope(Dispatchers.Main).launch {
             updateApiVersion()
+            dateUtils = DateUtils(apiMajorVersion)
             reloadBadges()
         }
     }
@@ -94,7 +96,6 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
     }
 
     private fun sortItems(items: ArrayList<SelfossModel.Item>) {
-        val dateUtils = DateUtils(apiMajorVersion)
         items.sortByDescending { dateUtils.parseDate(it.datetime) }
     }
 
