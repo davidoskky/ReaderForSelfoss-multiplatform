@@ -80,15 +80,15 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
             searchFilter)
 
         if (fetchedItems != null) {
-            items = ArrayList(fetchedItems)
+            appendItems(fetchedItems)
         }
         return items
     }
 
-    private fun storeItems(fetchedItems: List<SelfossModel.Item>) {
-        // TODO: Store in DB
+    private fun appendItems(fetchedItems: List<SelfossModel.Item>) {
+        // TODO: Store in DB if enabled by user
         val fetchedIDS = fetchedItems.map { it.id }
-        val tmpItems = ArrayList(items)
+        val tmpItems = items
         tmpItems.removeAll{ it.id in fetchedIDS }
         tmpItems.addAll(fetchedItems)
         sortItems(tmpItems)
@@ -100,7 +100,7 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
     }
 
     private fun filterSelectedItems(items: ArrayList<SelfossModel.Item>): ArrayList<SelfossModel.Item> {
-        val tmpItems = ArrayList(items)
+        val tmpItems = items
         if (displayedItems == "unread") {
             tmpItems.removeAll { !it.unread }
         } else if (displayedItems == "starred") {
