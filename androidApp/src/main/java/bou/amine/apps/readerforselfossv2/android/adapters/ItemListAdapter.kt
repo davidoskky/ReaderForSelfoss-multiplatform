@@ -15,8 +15,6 @@ import bou.amine.apps.readerforselfossv2.android.utils.glide.bitmapCenterCrop
 import bou.amine.apps.readerforselfossv2.android.utils.glide.circularBitmapDrawable
 import bou.amine.apps.readerforselfossv2.repository.Repository
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
-import bou.amine.apps.readerforselfossv2.service.SearchService
-import bou.amine.apps.readerforselfossv2.utils.DateUtils
 import com.amulyakhare.textdrawable.TextDrawable
 import com.amulyakhare.textdrawable.util.ColorGenerator
 import org.kodein.di.DI
@@ -56,7 +54,7 @@ class ItemListAdapter(
 
             binding.title.setLinkTextColor(appColors.colorAccent)
 
-            binding.sourceTitleAndDate.text = itm.sourceAndDateText(DateUtils(repository.apiMajorVersion))
+            binding.sourceTitleAndDate.text = itm.sourceAndDateText(repository.dateUtils)
 
             if (itm.getThumbnail(repository.baseUrl).isEmpty()) {
 

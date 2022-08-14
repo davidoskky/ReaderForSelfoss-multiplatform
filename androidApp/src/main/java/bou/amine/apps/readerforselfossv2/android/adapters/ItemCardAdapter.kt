@@ -19,7 +19,6 @@ import bou.amine.apps.readerforselfossv2.android.utils.glide.circularBitmapDrawa
 import bou.amine.apps.readerforselfossv2.android.utils.network.isNetworkAvailable
 import bou.amine.apps.readerforselfossv2.repository.Repository
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
-import bou.amine.apps.readerforselfossv2.utils.DateUtils
 import com.amulyakhare.textdrawable.TextDrawable
 import com.amulyakhare.textdrawable.util.ColorGenerator
 import com.bumptech.glide.Glide
@@ -67,7 +66,7 @@ class ItemCardAdapter(
 
             binding.title.setLinkTextColor(appColors.colorAccent)
 
-            binding.sourceTitleAndDate.text = itm.sourceAndDateText(DateUtils(repository.apiMajorVersion))
+            binding.sourceTitleAndDate.text = itm.sourceAndDateText(repository.dateUtils)
 
             if (!fullHeightCards) {
                 binding.itemImage.maxHeight = imageMaxHeight

@@ -1,12 +1,14 @@
 package bou.amine.apps.readerforselfossv2.repository
 
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
+import bou.amine.apps.readerforselfossv2.utils.DateUtils
 
 interface Repository {
 
     // TODO: remove the items variables in favor of storing everything in the database
     var items: ArrayList<SelfossModel.Item>
     var baseUrl: String
+    var dateUtils: DateUtils
 
     var displayedItems: String
 

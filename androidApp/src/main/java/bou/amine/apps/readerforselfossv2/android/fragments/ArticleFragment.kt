@@ -38,7 +38,6 @@ import bou.amine.apps.readerforselfossv2.android.utils.glide.loadMaybeBasicAuth
 import bou.amine.apps.readerforselfossv2.android.utils.network.isNetworkAvailable
 import bou.amine.apps.readerforselfossv2.repository.Repository
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
-import bou.amine.apps.readerforselfossv2.utils.DateUtils
 import bou.amine.apps.readerforselfossv2.utils.isEmptyOrNullOrNullString
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
@@ -124,7 +123,7 @@ class ArticleFragment : Fragment(), DIAware {
             contentText = item.content
             contentTitle = item.getTitleDecoded()
             contentImage = item.getThumbnail(repository.baseUrl)
-            contentSource = item.sourceAndDateText(DateUtils(repository.apiMajorVersion))
+            contentSource = item.sourceAndDateText(repository.dateUtils)
             allImages = item.getImages()
 
             fontSize = settings.getString("reader_font_size", "16").toInt()
