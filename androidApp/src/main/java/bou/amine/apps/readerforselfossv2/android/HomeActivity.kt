@@ -182,7 +182,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
         customTabActivityHelper = CustomTabActivityHelper()
 
         dataBase = AndroidDeviceDatabase(applicationContext)
-        //dbService = AndroidDeviceDatabaseService(dataBase, searchService)
 
         handleBottomBar()
         handleDrawer()
