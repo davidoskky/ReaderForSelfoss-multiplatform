@@ -147,7 +147,7 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         val success = api.markAsRead(id.toString())?.isSuccess == true
 
         if (success) {
-            markAsReadLocally(id)
+            markAsReadLocally(items.first {it.id == id})
         }
         return success
     }
@@ -157,7 +157,7 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         val success = api.unmarkAsRead(id.toString())?.isSuccess == true
 
         if (success) {
-            unmarkAsReadLocally(id)
+            unmarkAsReadLocally(items.first {it.id == id})
         }
         return success
     }
@@ -167,7 +167,7 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         val success = api.starr(id.toString())?.isSuccess == true
 
         if (success) {
-            starrLocally(id)
+            starrLocally(items.first {it.id == id})
         }
         return success
     }
@@ -177,7 +177,7 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         val success = api.unstarr(id.toString())?.isSuccess == true
 
         if (success) {
-            unstarrLocally(id)
+            unstarrLocally(items.first {it.id == id})
         }
         return success
     }
@@ -188,41 +188,42 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         val success = api.markAllAsRead(ids.map { it.toString() })?.isSuccess == true
 
         if (success) {
-            for (id in ids) {
-                markAsReadLocally(id)
+            val itemsToMark = items.filter { it.id in ids }
+            for (item in itemsToMark) {
+                markAsReadLocally(item)
             }
         }
         return success
     }
 
-    private fun markAsReadLocally(id: Int) {
+    private fun markAsReadLocally(item: SelfossModel.Item) {
         // TODO: Mark also in the database
-        if (items.first {it.id == id}.unread) {
-            items.first {it.id == id}.unread = false
+        if (item.unread) {
+            item.unread = false
             badgeUnread -= 1
         }
     }
 
-    private fun unmarkAsReadLocally(id: Int) {
+    private fun unmarkAsReadLocally(item: SelfossModel.Item) {
         // TODO: Mark also in the database
-        if (!items.first {it.id == id}.unread) {
-            items.first {it.id == id}.unread = true
+        if (!item.unread) {
+            item.unread = true
             badgeUnread += 1
         }
     }
 
-    private fun starrLocally(id: Int) {
+    private fun starrLocally(item: SelfossModel.Item) {
         // TODO: Mark also in the database
-        if (!items.first {it.id == id}.starred) {
-            items.first {it.id == id}.starred = true
+        if (!item.starred) {
+            item.starred = true
             badgeStarred += 1
         }
     }
 
-    private fun unstarrLocally(id: Int) {
+    private fun unstarrLocally(item: SelfossModel.Item) {
         // TODO: Mark also in the database
-        if (items.first {it.id == id}.starred) {
-            items.first {it.id == id}.starred = false
+        if (item.starred) {
+            item.starred = false
             badgeStarred -= 1
         }
     }
