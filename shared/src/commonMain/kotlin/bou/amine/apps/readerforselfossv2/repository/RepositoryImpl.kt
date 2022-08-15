@@ -14,8 +14,6 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
     val settings = Settings()
 
     override var items = ArrayList<SelfossModel.Item>()
-    get() { return ArrayList(field) }
-    set(value) { field = ArrayList(value) }
 
     override var baseUrl = apiDetails.getBaseUrl()
     override lateinit var dateUtils: DateUtils
