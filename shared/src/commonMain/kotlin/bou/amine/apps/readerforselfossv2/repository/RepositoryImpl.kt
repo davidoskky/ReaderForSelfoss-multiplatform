@@ -4,6 +4,7 @@ import bou.amine.apps.readerforselfossv2.rest.SelfossApi
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
 import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
 import bou.amine.apps.readerforselfossv2.utils.DateUtils
+import bou.amine.apps.readerforselfossv2.utils.ItemType
 import com.russhwolf.settings.Settings
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
@@ -18,16 +19,7 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
     override var baseUrl = apiDetails.getBaseUrl()
     override lateinit var dateUtils: DateUtils
 
-    override var displayedItems = "unread"
-        set(value) {
-            field = when (value) {
-                "all" -> "all"
-                "unread" -> "unread"
-                "read" -> "read"
-                "starred" -> "starred"
-                else -> "all"
-            }
-        }
+    override var displayedItems = ItemType.UNREAD
 
     override var tagFilter: SelfossModel.Tag? = null
     override var sourceFilter: SelfossModel.Source? = null
@@ -54,7 +46,7 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
 
     override suspend fun getNewerItems(): ArrayList<SelfossModel.Item> {
         // TODO: Check connectivity
-        val fetchedItems = api.getItems(displayedItems,
+        val fetchedItems = api.getItems(displayedItems.type,
             settings.getString("prefer_api_items_number", "200").toInt(),
             offset = 0,
             tagFilter?.tag,
@@ -70,7 +62,7 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
     override suspend fun getOlderItems(): ArrayList<SelfossModel.Item> {
         // TODO: Check connectivity
         val offset = items.size
-        val fetchedItems = api.getItems(displayedItems,
+        val fetchedItems = api.getItems(displayedItems.type,
             settings.getString("prefer_api_items_number", "200").toInt(),
             offset,
             tagFilter?.tag,
@@ -99,9 +91,9 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
 
     private fun filterSelectedItems(items: ArrayList<SelfossModel.Item>): ArrayList<SelfossModel.Item> {
         val tmpItems = items
-        if (displayedItems == "unread") {
+        if (displayedItems == ItemType.UNREAD) {
             tmpItems.removeAll { !it.unread }
-        } else if (displayedItems == "starred") {
+        } else if (displayedItems == ItemType.STARRED) {
             tmpItems.removeAll { !it.starred }
         }
 

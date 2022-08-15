@@ -49,6 +49,7 @@ import bou.amine.apps.readerforselfossv2.android.utils.persistence.toEntity
 import bou.amine.apps.readerforselfossv2.android.utils.persistence.toView
 import bou.amine.apps.readerforselfossv2.repository.Repository
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
+import bou.amine.apps.readerforselfossv2.utils.ItemType
 import bou.amine.apps.readerforselfossv2.utils.longHash
 import com.ashokvarma.bottomnavigation.BottomNavigationBar
 import com.ashokvarma.bottomnavigation.BottomNavigationItem
@@ -905,7 +906,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
     private fun getUnRead(appendResults: Boolean = false) {
         CoroutineScope(Dispatchers.Main).launch {
             binding.swipeRefreshLayout.isRefreshing = true
-            repository.displayedItems = "unread"
+            repository.displayedItems = ItemType.UNREAD
             items = if (appendResults) {
                 repository.getNewerItems()
             } else {
@@ -919,7 +920,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
     private fun getRead(appendResults: Boolean = false) {
         CoroutineScope(Dispatchers.Main).launch {
             binding.swipeRefreshLayout.isRefreshing = true
-            repository.displayedItems = "all"
+            repository.displayedItems = ItemType.ALL
             items = if (appendResults) {
                 repository.getNewerItems()
             } else {
@@ -933,7 +934,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
     private fun getStarred(appendResults: Boolean = false) {
         CoroutineScope(Dispatchers.Main).launch {
             binding.swipeRefreshLayout.isRefreshing = true
-            repository.displayedItems = "starred"
+            repository.displayedItems = ItemType.STARRED
             items = if (appendResults) {
                 repository.getNewerItems()
             } else {

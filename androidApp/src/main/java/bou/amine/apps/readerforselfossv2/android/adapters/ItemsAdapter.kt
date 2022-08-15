@@ -10,6 +10,7 @@ import bou.amine.apps.readerforselfossv2.android.themes.AppColors
 import bou.amine.apps.readerforselfossv2.android.utils.Config
 import bou.amine.apps.readerforselfossv2.repository.Repository
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
+import bou.amine.apps.readerforselfossv2.utils.ItemType
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -81,7 +82,7 @@ abstract class ItemsAdapter<VH : RecyclerView.ViewHolder?> : RecyclerView.Adapte
         CoroutineScope(Dispatchers.IO).launch {
             repository.markAsRead(i.id)
         }
-        if (repository.displayedItems == "unread") {
+        if (repository.displayedItems == ItemType.UNREAD) {
             items.remove(i)
             notifyItemRemoved(position)
             updateItems(items)

@@ -2,6 +2,7 @@ package bou.amine.apps.readerforselfossv2.repository
 
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
 import bou.amine.apps.readerforselfossv2.utils.DateUtils
+import bou.amine.apps.readerforselfossv2.utils.ItemType
 
 interface Repository {
 
@@ -10,7 +11,7 @@ interface Repository {
     var baseUrl: String
     var dateUtils: DateUtils
 
-    var displayedItems: String
+    var displayedItems: ItemType
 
     // Settings
     var itemsCaching: Boolean
