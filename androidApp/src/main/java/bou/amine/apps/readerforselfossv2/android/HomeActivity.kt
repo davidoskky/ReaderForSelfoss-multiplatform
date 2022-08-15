@@ -90,9 +90,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
     private val DRAWER_ID_HIDDEN_TAGS = 101100L
     private val DRAWER_ID_SOURCES = 100110L
     private val DRAWER_ID_FILTERS = 100111L
-    private val UNREAD_SHOWN = 1
-    private val READ_SHOWN = 2
-    private val FAV_SHOWN = 3
 
     private var items: ArrayList<SelfossModel.Item> = ArrayList()
 
@@ -103,7 +100,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
     private var displayAllCount = false
     private var fullHeightCards: Boolean = false
     private var itemsNumber: Int = 200
-    private var elementsShown: Int = 1
+    private var elementsShown: ItemType = ItemType.UNREAD
     private var userIdentifier: String = ""
     private var displayAccountHeader: Boolean = false
     private var infiniteScroll: Boolean = false
@@ -160,7 +157,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
         offlineShortcut =  intent.getBooleanExtra("startOffline", false)
 
         if (fromTabShortcut) {
-            elementsShown = intent.getIntExtra("shortcutTab", UNREAD_SHOWN)
+            elementsShown = ItemType.fromInt(intent.getIntExtra("shortcutTab", ItemType.UNREAD.position))
         }
 
         setContentView(view)
@@ -219,7 +216,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
                     recyclerView: RecyclerView,
                     viewHolder: RecyclerView.ViewHolder
                 ): Int =
-                    if (elementsShown == FAV_SHOWN) {
+                    if (elementsShown == ItemType.STARRED) {
                         0
                     } else {
                         super.getSwipeDirs(
@@ -316,7 +313,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
         binding.bottomBar.setBackgroundStyle(BottomNavigationBar.BACKGROUND_STYLE_STATIC)
 
         if (fromTabShortcut) {
-            binding.bottomBar.selectTab(elementsShown - 1)
+            binding.bottomBar.selectTab(elementsShown.position - 1)
         }
     }
 
@@ -830,7 +827,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
                 offset = 0
                 lastFetchDone = false
 
-                elementsShown = position + 1
+                elementsShown = ItemType.fromInt(position + 1)
                 getElementsAccordingToTab()
                 binding.recyclerView.scrollToPosition(0)
 
@@ -883,16 +880,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
     private fun getElementsAccordingToTab(
         appendResults: Boolean = false
     ) {
-        fun doGetAccordingToTab() {
-            when (elementsShown) {
-                // TODO: These three functions are not required, one is enough
-                UNREAD_SHOWN -> getItems(appendResults, ItemType.UNREAD)
-                READ_SHOWN -> getItems(appendResults, ItemType.ALL)
-                FAV_SHOWN -> getItems(appendResults, ItemType.STARRED)
-                else -> getItems(appendResults, ItemType.UNREAD)
-            }
-        }
-
         offset = if (appendResults && items.size > 0) {
             items.size - 1
         } else {
@@ -900,7 +887,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
         }
         firstVisible = if (appendResults) firstVisible else 0
 
-        doGetAccordingToTab()
+        getItems(appendResults, elementsShown)
     }
 
     private fun getItems(appendResults: Boolean, itemType: ItemType) {
@@ -1085,7 +1072,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
                 }
             }
             R.id.readAll -> {
-                if (elementsShown == UNREAD_SHOWN) {
+                if (elementsShown == ItemType.UNREAD) {
                     needsConfirmation(R.string.readAll, R.string.markall_dialog_message) {
                         binding.swipeRefreshLayout.isRefreshing = true
 
@@ -1127,9 +1114,9 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
 
     private fun maxItemNumber(): Int =
         when (elementsShown) {
-            UNREAD_SHOWN -> repository.badgeUnread
-            READ_SHOWN -> repository.badgeAll
-            FAV_SHOWN -> repository.badgeStarred
+            ItemType.UNREAD -> repository.badgeUnread
+            ItemType.ALL -> repository.badgeAll
+            ItemType.STARRED -> repository.badgeStarred
             else -> repository.badgeUnread // if !elementsShown then unread are fetched.
         }
 
