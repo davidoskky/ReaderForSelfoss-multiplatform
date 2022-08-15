@@ -886,10 +886,10 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
         fun doGetAccordingToTab() {
             when (elementsShown) {
                 // TODO: These three functions are not required, one is enough
-                UNREAD_SHOWN -> getUnRead(appendResults)
-                READ_SHOWN -> getRead(appendResults)
-                FAV_SHOWN -> getStarred(appendResults)
-                else -> getUnRead(appendResults)
+                UNREAD_SHOWN -> getItems(appendResults, ItemType.UNREAD)
+                READ_SHOWN -> getItems(appendResults, ItemType.ALL)
+                FAV_SHOWN -> getItems(appendResults, ItemType.STARRED)
+                else -> getItems(appendResults, ItemType.UNREAD)
             }
         }
 
@@ -903,38 +903,10 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
         doGetAccordingToTab()
     }
 
-    private fun getUnRead(appendResults: Boolean = false) {
+    private fun getItems(appendResults: Boolean, itemType: ItemType) {
         CoroutineScope(Dispatchers.Main).launch {
             binding.swipeRefreshLayout.isRefreshing = true
-            repository.displayedItems = ItemType.UNREAD
-            items = if (appendResults) {
-                repository.getNewerItems()
-            } else {
-                repository.getOlderItems()
-            }
-            binding.swipeRefreshLayout.isRefreshing = false
-            handleListResult()
-        }
-    }
-
-    private fun getRead(appendResults: Boolean = false) {
-        CoroutineScope(Dispatchers.Main).launch {
-            binding.swipeRefreshLayout.isRefreshing = true
-            repository.displayedItems = ItemType.ALL
-            items = if (appendResults) {
-                repository.getNewerItems()
-            } else {
-                repository.getOlderItems()
-            }
-            binding.swipeRefreshLayout.isRefreshing = false
-            handleListResult()
-        }
-    }
-
-    private fun getStarred(appendResults: Boolean = false) {
-        CoroutineScope(Dispatchers.Main).launch {
-            binding.swipeRefreshLayout.isRefreshing = true
-            repository.displayedItems = ItemType.STARRED
+            repository.displayedItems = itemType
             items = if (appendResults) {
                 repository.getNewerItems()
             } else {
