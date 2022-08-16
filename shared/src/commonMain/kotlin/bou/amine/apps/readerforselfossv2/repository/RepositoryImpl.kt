@@ -45,13 +45,14 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
     }
 
     override suspend fun getNewerItems(): ArrayList<SelfossModel.Item> {
-        // TODO: Check connectivity
+        // TODO: Check connectivity, use the updatedSince parameter
         val fetchedItems = api.getItems(displayedItems.type,
             settings.getString("prefer_api_items_number", "200").toInt(),
             offset = 0,
             tagFilter?.tag,
             sourceFilter?.id?.toLong(),
-            searchFilter)
+            searchFilter,
+            null)
 
         if (fetchedItems != null) {
             items = ArrayList(fetchedItems)
@@ -67,7 +68,8 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
             offset,
             tagFilter?.tag,
             sourceFilter?.id?.toLong(),
-            searchFilter)
+            searchFilter,
+            null)
 
         if (fetchedItems != null) {
             appendItems(fetchedItems)
@@ -76,7 +78,7 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
     }
 
     override suspend fun allItems(itemType: ItemType): List<SelfossModel.Item>? =
-        api.getItems(itemType.type, 200, 0, tagFilter?.tag, sourceFilter?.id?.toLong(), searchFilter)
+        api.getItems(itemType.type, 200, 0, tagFilter?.tag, sourceFilter?.id?.toLong(), searchFilter, null)
 
     private fun appendItems(fetchedItems: List<SelfossModel.Item>) {
         // TODO: Store in DB if enabled by user
