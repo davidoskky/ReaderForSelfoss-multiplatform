@@ -150,7 +150,8 @@ class ReaderActivity : AppCompatActivity(), DIAware {
         }
     }
 
-    private fun alignmentMenu(showJustify: Boolean) {
+    private fun alignmentMenu() {
+        val showJustify = activeAlignment == ALIGN_LEFT
         toolbarMenu.findItem(R.id.align_left).isVisible = !showJustify
         toolbarMenu.findItem(R.id.align_justify).isVisible = showJustify
     }
@@ -165,11 +166,7 @@ class ReaderActivity : AppCompatActivity(), DIAware {
         } else {
             canFavorite()
         }
-        if (activeAlignment == JUSTIFY) {
-            alignmentMenu(false)
-        } else {
-            alignmentMenu(true)
-        }
+        alignmentMenu()
 
         binding.pager.registerOnPageChangeCallback(
                 object : ViewPager2.OnPageChangeCallback() {
@@ -223,17 +220,22 @@ class ReaderActivity : AppCompatActivity(), DIAware {
                 }
             }
             R.id.align_left -> {
-                settings.putInt("text_align", ALIGN_LEFT)
-                alignmentMenu(true)
+                activeAlignment = ALIGN_LEFT
+                switchAlignmentSetting()
                 refreshFragment()
             }
             R.id.align_justify -> {
-                settings.putInt("text_align", JUSTIFY)
-                alignmentMenu(false)
+                activeAlignment = JUSTIFY
+                switchAlignmentSetting()
                 refreshFragment()
             }
         }
         return super.onOptionsItemSelected(item)
+    }
+
+    private fun switchAlignmentSetting() {
+        settings.putInt("text_align", activeAlignment)
+        alignmentMenu()
     }
 
     private fun refreshFragment() {
