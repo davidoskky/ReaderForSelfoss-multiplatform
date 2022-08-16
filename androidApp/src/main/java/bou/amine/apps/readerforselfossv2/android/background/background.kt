@@ -5,7 +5,6 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import androidx.preference.PreferenceManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationCompat.PRIORITY_DEFAULT
 import androidx.core.app.NotificationCompat.PRIORITY_LOW
@@ -13,52 +12,39 @@ import androidx.room.Room
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 import bou.amine.apps.readerforselfossv2.android.MainActivity
+import bou.amine.apps.readerforselfossv2.android.MyApp
 import bou.amine.apps.readerforselfossv2.android.R
 import bou.amine.apps.readerforselfossv2.android.model.preloadImages
-import bou.amine.apps.readerforselfossv2.android.persistence.AndroidDeviceDatabase
-import bou.amine.apps.readerforselfossv2.android.persistence.AndroidDeviceDatabaseService
 import bou.amine.apps.readerforselfossv2.android.persistence.database.AppDatabase
 import bou.amine.apps.readerforselfossv2.android.persistence.entities.ActionEntity
 import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_1_2
 import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_2_3
 import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_3_4
-import bou.amine.apps.readerforselfossv2.android.service.AndroidApiDetailsService
 import bou.amine.apps.readerforselfossv2.android.utils.Config
 import bou.amine.apps.readerforselfossv2.android.utils.network.isNetworkAvailable
-
-import bou.amine.apps.readerforselfossv2.rest.SelfossApi
+import bou.amine.apps.readerforselfossv2.repository.Repository
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
-import bou.amine.apps.readerforselfossv2.service.SearchService
-import bou.amine.apps.readerforselfossv2.service.SelfossService
-import bou.amine.apps.readerforselfossv2.utils.DateUtils
+import bou.amine.apps.readerforselfossv2.utils.ItemType
+import com.russhwolf.settings.Settings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.kodein.di.DIAware
+import org.kodein.di.instance
 import java.util.*
 import kotlin.concurrent.schedule
 import kotlin.concurrent.thread
 
-class LoadingWorker(val context: Context, params: WorkerParameters) : Worker(context, params) {
+class LoadingWorker(val context: Context, params: WorkerParameters) : Worker(context, params), DIAware {
     lateinit var db: AppDatabase
 
-override fun doWork(): Result {
-    val settings =
-        this.context.getSharedPreferences(Config.settingsName, Context.MODE_PRIVATE)
-    val sharedPref = PreferenceManager.getDefaultSharedPreferences(this.context)
-    val periodicRefresh = sharedPref.getBoolean("periodic_refresh", false)
-    if (periodicRefresh) {
-        val apiDetailsService = AndroidApiDetailsService(this.context)
-        val api = SelfossApi(
-//            this.context,
-//            null,
-//            settings.getBoolean("isSelfSignedCert", false),
-//            sharedPref.getString("api_timeout", "-1")!!.toLong()
-            apiDetailsService
-        )
+    override val di by lazy { (applicationContext as MyApp).di }
+    private val repository : Repository by instance()
 
-        val dateUtils = DateUtils(apiDetailsService)
-        val searchService = SearchService(dateUtils)
-        val service = SelfossService(api, AndroidDeviceDatabaseService(AndroidDeviceDatabase(applicationContext), searchService), searchService)
+override fun doWork(): Result {
+    val settings = Settings()
+    val periodicRefresh = settings.getBoolean("periodic_refresh", false)
+    if (periodicRefresh) {
 
         if (context.isNetworkAvailable()) {
 
@@ -77,7 +63,7 @@ override fun doWork(): Result {
 
                 notificationManager.notify(1, notification.build())
 
-                val notifyNewItems = sharedPref.getBoolean("notify_new_items", false)
+                val notifyNewItems = settings.getBoolean("notify_new_items", false)
 
                 db = Room.databaseBuilder(
                     applicationContext,
@@ -90,19 +76,19 @@ override fun doWork(): Result {
                 actions.forEach { action ->
                     when {
                         action.read -> doAndReportOnFail(
-                            api.markAsRead(action.articleId),
+                            repository.markAsRead(action.articleId.toInt()),
                             action
                         )
                         action.unread -> doAndReportOnFail(
-                            api.unmarkAsRead(action.articleId),
+                            repository.unmarkAsRead(action.articleId.toInt()),
                             action
                         )
                         action.starred -> doAndReportOnFail(
-                            api.starr(action.articleId),
+                            repository.starr(action.articleId.toInt()),
                             action
                         )
                         action.unstarred -> doAndReportOnFail(
-                            api.unstarr(action.articleId),
+                            repository.unstarr(action.articleId.toInt()),
                             action
                         )
                     }
@@ -111,10 +97,10 @@ override fun doWork(): Result {
                 if (context.isNetworkAvailable()) {
                     launch {
                         try {
-                            val newItems = service.allNewItems()
+                            val newItems = repository.allItems(ItemType.UNREAD)
                             handleNewItemsNotification(newItems, notifyNewItems, notificationManager)
-                            val readItems = service.allReadItems()
-                            val starredItems = service.allStarredItems()
+                            val readItems = repository.allItems(ItemType.ALL)
+                            val starredItems = repository.allItems(ItemType.STARRED)
                             // TODO: save all to DB
                         } catch (e: Throwable) {}
                     }
@@ -173,8 +159,9 @@ override fun doWork(): Result {
         }
     }
 
-    private fun doAndReportOnFail(result: SelfossModel.SuccessResponse?, action: ActionEntity) {
-        if (result != null && result.isSuccess) {
+    private fun doAndReportOnFail(result: Boolean, action: ActionEntity) {
+        // TODO: Failures should be reported
+        if (result) {
             thread {
                 db.actionsDao().delete(action)
             }

@@ -1,14 +1,11 @@
 package bou.amine.apps.readerforselfossv2.android
 
-import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
-import androidx.preference.PreferenceManager
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -37,11 +34,9 @@ import bou.amine.apps.readerforselfossv2.android.persistence.AndroidDeviceDataba
 import bou.amine.apps.readerforselfossv2.android.persistence.AndroidDeviceDatabaseService
 import bou.amine.apps.readerforselfossv2.android.persistence.database.AppDatabase
 import bou.amine.apps.readerforselfossv2.android.persistence.entities.ActionEntity
-import bou.amine.apps.readerforselfossv2.android.persistence.entities.AndroidItemEntity
 import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_1_2
 import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_2_3
 import bou.amine.apps.readerforselfossv2.android.persistence.migrations.MIGRATION_3_4
-import bou.amine.apps.readerforselfossv2.android.service.AndroidApiDetailsService
 import bou.amine.apps.readerforselfossv2.android.settings.SettingsActivity
 import bou.amine.apps.readerforselfossv2.android.themes.AppColors
 import bou.amine.apps.readerforselfossv2.android.themes.Toppings
@@ -52,13 +47,9 @@ import bou.amine.apps.readerforselfossv2.android.utils.customtabs.CustomTabActiv
 import bou.amine.apps.readerforselfossv2.android.utils.network.isNetworkAvailable
 import bou.amine.apps.readerforselfossv2.android.utils.persistence.toEntity
 import bou.amine.apps.readerforselfossv2.android.utils.persistence.toView
-
-import bou.amine.apps.readerforselfossv2.utils.DateUtils
-import bou.amine.apps.readerforselfossv2.rest.SelfossApi
+import bou.amine.apps.readerforselfossv2.repository.Repository
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
-import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
-import bou.amine.apps.readerforselfossv2.service.SearchService
-import bou.amine.apps.readerforselfossv2.service.SelfossService
+import bou.amine.apps.readerforselfossv2.utils.ItemType
 import bou.amine.apps.readerforselfossv2.utils.longHash
 import com.ashokvarma.bottomnavigation.BottomNavigationBar
 import com.ashokvarma.bottomnavigation.BottomNavigationItem
@@ -80,30 +71,27 @@ import com.mikepenz.materialdrawer.util.DrawerImageLoader
 import com.mikepenz.materialdrawer.util.addStickyFooterItem
 import com.mikepenz.materialdrawer.util.updateBadge
 import com.mikepenz.materialdrawer.widget.AccountHeaderView
+import com.russhwolf.settings.Settings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.kodein.di.DIAware
+import org.kodein.di.android.closestDI
+import org.kodein.di.instance
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
-class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
+class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAware {
 
     private lateinit var dataBase: AndroidDeviceDatabase
     private lateinit var dbService: AndroidDeviceDatabaseService
-    private lateinit var searchService: SearchService
-    private lateinit var apiDetailsService: ApiDetailsService
-    private lateinit var service: SelfossService<AndroidItemEntity>
     private val MENU_PREFERENCES = 12302
     private val DRAWER_ID_TAGS = 100101L
     private val DRAWER_ID_HIDDEN_TAGS = 101100L
     private val DRAWER_ID_SOURCES = 100110L
     private val DRAWER_ID_FILTERS = 100111L
-    private val UNREAD_SHOWN = 1
-    private val READ_SHOWN = 2
-    private val FAV_SHOWN = 3
 
     private var items: ArrayList<SelfossModel.Item> = ArrayList()
-    private var allItems: ArrayList<SelfossModel.Item> = ArrayList()
 
     private var internalBrowser = false
     private var articleViewer = false
@@ -112,15 +100,13 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
     private var displayAllCount = false
     private var fullHeightCards: Boolean = false
     private var itemsNumber: Int = 200
-    private var elementsShown: Int = 1
-    private var userIdentifier: String = ""
+    private var elementsShown: ItemType = ItemType.UNREAD
     private var displayAccountHeader: Boolean = false
     private var infiniteScroll: Boolean = false
     private var lastFetchDone: Boolean = false
     private var updateSources: Boolean = true
     private var markOnScroll: Boolean = false
     private var hiddenTags: List<String> = emptyList()
-    private var apiVersionMajor: Int = 0
 
     private var periodicRefresh = false
     private var refreshMinutes: Long = 360L
@@ -129,15 +115,12 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
     private lateinit var tabNewBadge: TextBadgeItem
     private lateinit var tabArchiveBadge: TextBadgeItem
     private lateinit var tabStarredBadge: TextBadgeItem
-    private lateinit var api: SelfossApi
     private lateinit var customTabActivityHelper: CustomTabActivityHelper
-    private lateinit var editor: SharedPreferences.Editor
-    private lateinit var sharedPref: SharedPreferences
     private lateinit var appColors: AppColors
     private var offset: Int = 0
     private var firstVisible: Int = 0
     private lateinit var recyclerViewScrollListener: RecyclerView.OnScrollListener
-    private lateinit var settings: SharedPreferences
+    private var settings = Settings()
     private lateinit var binding: ActivityHomeBinding
 
     private var recyclerAdapter: RecyclerView.Adapter<*>? = null
@@ -151,6 +134,9 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
 
     private lateinit var config: Config
 
+    override val di by closestDI()
+    private val repository : Repository by instance()
+
     data class DrawerData(val tags: List<SelfossModel.Tag>?, val sources: List<SelfossModel.Source>?)
 
     override fun onStart() {
@@ -160,7 +146,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         appColors = AppColors(this@HomeActivity)
-        config = Config(this@HomeActivity)
+        config = Config()
 
         super.onCreate(savedInstanceState)
         binding = ActivityHomeBinding.inflate(layoutInflater)
@@ -170,7 +156,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
         offlineShortcut =  intent.getBooleanExtra("startOffline", false)
 
         if (fromTabShortcut) {
-            elementsShown = intent.getIntExtra("shortcutTab", UNREAD_SHOWN)
+            elementsShown = ItemType.fromInt(intent.getIntExtra("shortcutTab", ItemType.UNREAD.position))
         }
 
         setContentView(view)
@@ -192,33 +178,14 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
 
         customTabActivityHelper = CustomTabActivityHelper()
 
-        sharedPref = PreferenceManager.getDefaultSharedPreferences(this)
-        settings = getSharedPreferences(Config.settingsName, Context.MODE_PRIVATE)
-
-        apiDetailsService = AndroidApiDetailsService(applicationContext)
-        api = SelfossApi(
-//            this,
-//            this@HomeActivity,
-//            settings.getBoolean("isSelfSignedCert", false),
-//            sharedPref.getString("api_timeout", "-1")!!.toLong()
-            apiDetailsService
-        )
-
         dataBase = AndroidDeviceDatabase(applicationContext)
-        searchService = SearchService(DateUtils(apiDetailsService))
-        dbService = AndroidDeviceDatabaseService(dataBase, searchService)
-        service = SelfossService(api, dbService, searchService)
-        items = ArrayList()
-        allItems = ArrayList()
 
         handleBottomBar()
         handleDrawer()
 
         handleSwipeRefreshLayout()
 
-        handleSharedPrefs()
-
-        getApiMajorVersion()
+        handleSettings()
 
         getElementsAccordingToTab()
     }
@@ -231,7 +198,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
         )
         binding.swipeRefreshLayout.setOnRefreshListener {
             offlineShortcut = false
-            allItems = ArrayList()
             lastFetchDone = false
             handleDrawerItems()
             CoroutineScope(Dispatchers.Main).launch {
@@ -249,7 +215,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
                     recyclerView: RecyclerView,
                     viewHolder: RecyclerView.ViewHolder
                 ): Int =
-                    if (elementsShown == FAV_SHOWN) {
+                    if (elementsShown == ItemType.STARRED) {
                         0
                     } else {
                         super.getSwipeDirs(
@@ -346,17 +312,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
         binding.bottomBar.setBackgroundStyle(BottomNavigationBar.BACKGROUND_STYLE_STATIC)
 
         if (fromTabShortcut) {
-            binding.bottomBar.selectTab(elementsShown - 1)
-        }
-    }
-
-    private fun getApiMajorVersion() {
-        CoroutineScope(Dispatchers.IO).launch {
-            val version = api.version()
-            if (version != null) {
-                apiVersionMajor = version.getApiMajorVersion()
-                sharedPref.edit().putInt("apiVersionMajor", apiVersionMajor).apply()
-            }
+            binding.bottomBar.selectTab(elementsShown.position - 1)
         }
     }
 
@@ -365,10 +321,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
 
         // TODO: Make this the only appcolors init
         appColors = AppColors(this@HomeActivity)
-
-        sharedPref = PreferenceManager.getDefaultSharedPreferences(this)
-
-        editor = settings.edit()
 
         handleDrawerItems()
 
@@ -396,34 +348,30 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
         customTabActivityHelper.unbindCustomTabsService(this)
     }
 
-    private fun handleSharedPrefs() {
-        internalBrowser = sharedPref.getBoolean("prefer_internal_browser", true)
-        articleViewer = sharedPref.getBoolean("prefer_article_viewer", true)
-        shouldBeCardView = sharedPref.getBoolean("card_view_active", false)
-        displayUnreadCount = sharedPref.getBoolean("display_unread_count", true)
-        displayAllCount = sharedPref.getBoolean("display_other_count", false)
-        fullHeightCards = sharedPref.getBoolean("full_height_cards", false)
-        itemsNumber = sharedPref.getString("prefer_api_items_number", "200")!!.toInt()
-        userIdentifier = sharedPref.getString("unique_id", "")!!
-        displayAccountHeader = sharedPref.getBoolean("account_header_displaying", false)
-        infiniteScroll = sharedPref.getBoolean("infinite_loading", false)
-        searchService.itemsCaching = sharedPref.getBoolean("items_caching", false)
-        updateSources = sharedPref.getBoolean("update_sources", true)
-        markOnScroll = sharedPref.getBoolean("mark_on_scroll", false)
-        hiddenTags = if (sharedPref.getString("hidden_tags", "")!!.isNotEmpty()) {
-            sharedPref.getString("hidden_tags", "")!!.replace("\\s".toRegex(), "").split(",")
+    private fun handleSettings() {
+        internalBrowser = settings.getBoolean("prefer_internal_browser", true)
+        articleViewer = settings.getBoolean("prefer_article_viewer", true)
+        shouldBeCardView = settings.getBoolean("card_view_active", false)
+        displayUnreadCount = settings.getBoolean("display_unread_count", true)
+        displayAllCount = settings.getBoolean("display_other_count", false)
+        fullHeightCards = settings.getBoolean("full_height_cards", false)
+        itemsNumber = settings.getString("prefer_api_items_number", "200").toInt()
+        displayAccountHeader = settings.getBoolean("account_header_displaying", false)
+        infiniteScroll = settings.getBoolean("infinite_loading", false)
+        updateSources = settings.getBoolean("update_sources", true)
+        markOnScroll = settings.getBoolean("mark_on_scroll", false)
+        hiddenTags = if (settings.getString("hidden_tags", "").isNotEmpty()) {
+            settings.getString("hidden_tags", "").replace("\\s".toRegex(), "").split(",")
         } else {
             emptyList()
         }
-        periodicRefresh = sharedPref.getBoolean("periodic_refresh", false)
-        refreshWhenChargingOnly = sharedPref.getBoolean("refresh_when_charging", false)
-        refreshMinutes = sharedPref.getString("periodic_refresh_minutes", "360")!!.toLong()
+        periodicRefresh = settings.getBoolean("periodic_refresh", false)
+        refreshWhenChargingOnly = settings.getBoolean("refresh_when_charging", false)
+        refreshMinutes = settings.getString("periodic_refresh_minutes", "360").toLong()
 
         if (refreshMinutes <= 15) {
             refreshMinutes = 15
         }
-
-        apiVersionMajor = sharedPref.getInt("apiVersionMajor", 0)
     }
 
     private fun handleThemeBinding() {
@@ -478,8 +426,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
         binding.drawerContainer.addDrawerListener(drawerListener)
 
         displayAccountHeader =
-                PreferenceManager.getDefaultSharedPreferences(this)
-                    .getBoolean("account_header_displaying", false)
+                settings.getBoolean("account_header_displaying", false)
 
         binding.mainDrawer.addStickyFooterItem(
             PrimaryDrawerItem().apply {
@@ -509,7 +456,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
                 attachToSliderView(binding.mainDrawer)
                 addProfiles(
                     ProfileDrawerItem().apply {
-                        nameText = settings.getString("url", "").toString()
+                        nameText = settings.getString("url", "")
                         setBackgroundResource(R.drawable.bg)
                         iconRes = R.mipmap.ic_launcher
                         selectionListEnabledForSingleProfile = false
@@ -556,10 +503,8 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
                                         textColor = ColorHolder.fromColor(Color.WHITE)
                                         color = ColorHolder.fromColor(appColors.colorAccent) }
                                     onDrawerItemClickListener = { _,_,_ ->
-                                        allItems = ArrayList()
-                                        searchService.tagFilter = it.tag
-                                        searchService.sourceFilter = null
-                                        searchService.sourceIDFilter = null
+                                        repository.tagFilter = it
+                                        repository.sourceFilter = null
                                         getElementsAccordingToTab()
                                         fetchOnEmptyList()
                                         false
@@ -609,10 +554,8 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
                                     textColor = ColorHolder.fromColor(Color.WHITE)
                                     color = ColorHolder.fromColor(appColors.colorAccent) }
                                 onDrawerItemClickListener = { _,_,_ ->
-                                    allItems = ArrayList()
-                                    searchService.tagFilter = it.tag
-                                    searchService.sourceFilter = null
-                                    searchService.sourceIDFilter = null
+                                    repository.tagFilter = it
+                                    repository.sourceFilter = null
                                     getElementsAccordingToTab()
                                     fetchOnEmptyList()
                                     false
@@ -643,12 +586,10 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
                         val item = PrimaryDrawerItem().apply {
                             nameText = source.getTitleDecoded()
                             identifier = source.id.toLong()
-                            iconUrl = source.getIcon(apiDetailsService.getBaseUrl())
+                            iconUrl = source.getIcon(repository.baseUrl)
                             onDrawerItemClickListener = { _,_,_ ->
-                                allItems = ArrayList()
-                                searchService.sourceIDFilter = source.id.toLong()
-                                searchService.sourceFilter = source.title
-                                searchService.tagFilter = null
+                                repository.sourceFilter = source
+                                repository.tagFilter = null
                                 getElementsAccordingToTab()
                                 fetchOnEmptyList()
                                 false
@@ -668,10 +609,8 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
                         identifier = DRAWER_ID_FILTERS
                         badgeRes = R.string.drawer_action_clear
                         onDrawerItemClickListener = { _,_,_ ->
-                            allItems = ArrayList()
-                            searchService.sourceFilter = null
-                            searchService.sourceIDFilter = null
-                            searchService.tagFilter = null
+                            repository.sourceFilter = null
+                            repository.tagFilter = null
                             binding.mainDrawer.setSelectionAtPosition(-1)
                             getElementsAccordingToTab()
                             fetchOnEmptyList()
@@ -772,7 +711,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
             fun sourcesApiCall() {
                 if (this@HomeActivity.isNetworkAvailable(null, offlineShortcut) && updateSources) {
                     CoroutineScope(Dispatchers.Main).launch {
-                        val response = api.sources()
+                        val response = repository.getSources()
                         if (response != null) {
                             sources = response
                             val apiDrawerData = DrawerData(tags, sources)
@@ -791,10 +730,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
 
             if (this@HomeActivity.isNetworkAvailable(null, offlineShortcut) && updateSources) {
                 CoroutineScope(Dispatchers.IO).launch {
-                    val response = api.tags()
-                    if (response != null) {
-                        tags = response
-                    }
+                    tags = repository.getTags()
                     sourcesApiCall()
                 }
             }
@@ -889,7 +825,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
                 offset = 0
                 lastFetchDone = false
 
-                elementsShown = position + 1
+                elementsShown = ItemType.fromInt(position + 1)
                 getElementsAccordingToTab()
                 binding.recyclerView.scrollToPosition(0)
 
@@ -942,15 +878,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
     private fun getElementsAccordingToTab(
         appendResults: Boolean = false
     ) {
-        fun doGetAccordingToTab() {
-            when (elementsShown) {
-                UNREAD_SHOWN -> getUnRead(appendResults)
-                READ_SHOWN -> getRead(appendResults)
-                FAV_SHOWN -> getStarred(appendResults)
-                else -> getUnRead(appendResults)
-            }
-        }
-
         offset = if (appendResults && items.size > 0) {
             items.size - 1
         } else {
@@ -958,45 +885,17 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
         }
         firstVisible = if (appendResults) firstVisible else 0
 
-        doGetAccordingToTab()
+        getItems(appendResults, elementsShown)
     }
 
-    private fun getUnRead(appendResults: Boolean = false) {
+    private fun getItems(appendResults: Boolean, itemType: ItemType) {
         CoroutineScope(Dispatchers.Main).launch {
             binding.swipeRefreshLayout.isRefreshing = true
-            val apiItems = service.getUnreadItems(itemsNumber, offset, applicationContext.isNetworkAvailable())
-            if (appendResults) {
-                apiItems?.let { items.addAll(it) }
+            repository.displayedItems = itemType
+            items = if (appendResults) {
+                repository.getOlderItems()
             } else {
-                items = apiItems.orEmpty() as ArrayList<SelfossModel.Item>
-            }
-            binding.swipeRefreshLayout.isRefreshing = false
-            handleListResult()
-        }
-    }
-
-    private fun getRead(appendResults: Boolean = false) {
-        CoroutineScope(Dispatchers.Main).launch {
-            binding.swipeRefreshLayout.isRefreshing = true
-            val apiItems = service.getReadItems(itemsNumber, offset, applicationContext.isNetworkAvailable())
-            if (appendResults) {
-                apiItems?.let { items.addAll(it) }
-            } else {
-                items = apiItems.orEmpty() as ArrayList<SelfossModel.Item>
-            }
-            binding.swipeRefreshLayout.isRefreshing = false
-            handleListResult()
-        }
-    }
-
-    private fun getStarred(appendResults: Boolean = false) {
-        CoroutineScope(Dispatchers.Main).launch {
-            binding.swipeRefreshLayout.isRefreshing = true
-            val apiItems = service.getStarredItems(itemsNumber, offset, applicationContext.isNetworkAvailable())
-            if (appendResults) {
-                apiItems?.let { items.addAll(it) }
-            } else {
-                items = apiItems.orEmpty() as ArrayList<SelfossModel.Item>
+                repository.getNewerItems()
             }
             binding.swipeRefreshLayout.isRefreshing = false
             handleListResult()
@@ -1021,17 +920,13 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
                         ItemCardAdapter(
                             this,
                             items,
-                            api,
-                            apiDetailsService,
                             db,
                             customTabActivityHelper,
                             internalBrowser,
                             articleViewer,
                             fullHeightCards,
                             appColors,
-                            userIdentifier,
-                            config,
-                            searchService
+                            config
                         ) {
                             updateItems(it)
                         }
@@ -1040,16 +935,12 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
                         ItemListAdapter(
                             this,
                             items,
-                            api,
-                            apiDetailsService,
                             db,
                             customTabActivityHelper,
                             internalBrowser,
                             articleViewer,
-                            userIdentifier,
                             appColors,
-                            config,
-                            searchService
+                            config
                         ) {
                             updateItems(it)
                         }
@@ -1073,8 +964,10 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
     private fun reloadBadges() {
         if (displayUnreadCount || displayAllCount) {
             CoroutineScope(Dispatchers.Main).launch {
-                service.reloadBadges(applicationContext.isNetworkAvailable())
-                reloadBadgeContent()
+                if (applicationContext.isNetworkAvailable()) {
+                    repository.reloadBadges()
+                    reloadBadgeContent()
+                }
             }
         }
     }
@@ -1082,15 +975,15 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
     private fun reloadBadgeContent() {
         if (displayUnreadCount) {
             tabNewBadge
-                .setText(searchService.badgeUnread.toString())
+                .setText(repository.badgeUnread.toString())
                 .maybeShow()
         }
         if (displayAllCount) {
             tabArchiveBadge
-                .setText(searchService.badgeAll.toString())
+                .setText(repository.badgeAll.toString())
                 .maybeShow()
             tabStarredBadge
-                .setText(searchService.badgeStarred.toString())
+                .setText(repository.badgeStarred.toString())
                 .maybeShow()
         }
     }
@@ -1110,7 +1003,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
 
     override fun onQueryTextChange(p0: String?): Boolean {
         if (p0.isNullOrBlank()) {
-            searchService.searchFilter = null
+            repository.searchFilter = null
             getElementsAccordingToTab()
             fetchOnEmptyList()
         }
@@ -1118,7 +1011,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
     }
 
     override fun onQueryTextSubmit(p0: String?): Boolean {
-        searchService.searchFilter = p0
+        repository.searchFilter = p0
         getElementsAccordingToTab()
         fetchOnEmptyList()
         return false
@@ -1151,9 +1044,10 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
                 if (this@HomeActivity.isNetworkAvailable(null, offlineShortcut)) {
                     needsConfirmation(R.string.menu_home_refresh, R.string.refresh_dialog_message) {
                         Toast.makeText(this, R.string.refresh_in_progress, Toast.LENGTH_SHORT).show()
+                        // TODO: Use Dispatchers.IO
                         CoroutineScope(Dispatchers.Main).launch {
-                            val status = api.update()
-                            if (status != null && status.isSuccess) {
+                            val updatedRemote = repository.updateRemote()
+                            if (updatedRemote) {
                                 Toast.makeText(
                                     this@HomeActivity,
                                     R.string.refresh_success_response, Toast.LENGTH_LONG
@@ -1174,13 +1068,13 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
                 }
             }
             R.id.readAll -> {
-                if (elementsShown == UNREAD_SHOWN) {
+                if (elementsShown == ItemType.UNREAD) {
                     needsConfirmation(R.string.readAll, R.string.markall_dialog_message) {
                         binding.swipeRefreshLayout.isRefreshing = true
 
                         if (this@HomeActivity.isNetworkAvailable(null, offlineShortcut)) {
                             CoroutineScope(Dispatchers.Main).launch {
-                                val success = service.readAll(items.map { it.id.toString() }, applicationContext.isNetworkAvailable())
+                                val success = repository.markAllAsRead(items.map { it.id })
                                 if (success) {
                                     Toast.makeText(
                                         this@HomeActivity,
@@ -1208,7 +1102,7 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
                 return true
             }
             R.id.action_disconnect -> {
-                return Config.logoutAndRedirect(this, this@HomeActivity, editor)
+                return Config.logoutAndRedirect(this, this@HomeActivity)
             }
             else -> return super.onOptionsItemSelected(item)
         }
@@ -1216,10 +1110,10 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
 
     private fun maxItemNumber(): Int =
         when (elementsShown) {
-            UNREAD_SHOWN -> searchService.badgeUnread
-            READ_SHOWN -> searchService.badgeAll
-            FAV_SHOWN -> searchService.badgeStarred
-            else -> searchService.badgeUnread // if !elementsShown then unread are fetched.
+            ItemType.UNREAD -> repository.badgeUnread
+            ItemType.ALL -> repository.badgeAll
+            ItemType.STARRED -> repository.badgeStarred
+            else -> repository.badgeUnread // if !elementsShown then unread are fetched.
         }
 
     private fun updateItems(adapterItems: ArrayList<SelfossModel.Item>) {
@@ -1245,8 +1139,8 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
     }
 
     private fun handleOfflineActions() {
-        fun doAndReportOnFail(call: SelfossModel.SuccessResponse?, action: ActionEntity) {
-            if (call != null && call.isSuccess) {
+        fun doAndReportOnFail(success: Boolean, action: ActionEntity) {
+            if (success) {
                 thread {
                     db.actionsDao().delete(action)
                 }
@@ -1259,10 +1153,10 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
 
                 actions.forEach { action ->
                     when {
-                        action.read -> doAndReportOnFail(api.markAsRead(action.articleId), action)
-                        action.unread -> doAndReportOnFail(api.unmarkAsRead(action.articleId), action)
-                        action.starred -> doAndReportOnFail(api.starr(action.articleId), action)
-                        action.unstarred -> doAndReportOnFail(api.unstarr(action.articleId), action)
+                        action.read -> doAndReportOnFail(repository.markAsRead(action.articleId.toInt()), action)
+                        action.unread -> doAndReportOnFail(repository.markAsRead(action.articleId.toInt()), action)
+                        action.starred -> doAndReportOnFail(repository.markAsRead(action.articleId.toInt()), action)
+                        action.unstarred -> doAndReportOnFail(repository.markAsRead(action.articleId.toInt()), action)
                     }
                 }
             }

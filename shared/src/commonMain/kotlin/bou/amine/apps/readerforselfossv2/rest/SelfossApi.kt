@@ -3,10 +3,6 @@ package bou.amine.apps.readerforselfossv2.rest
 import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
 import io.ktor.client.*
 import io.ktor.client.call.*
-import io.ktor.client.engine.*
-import io.ktor.client.engine.ProxyBuilder.http
-import io.ktor.client.plugins.auth.*
-import io.ktor.client.plugins.auth.providers.*
 import io.ktor.client.plugins.cache.*
 import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
@@ -18,43 +14,51 @@ import kotlinx.serialization.json.Json
 
 class SelfossApi(private val apiDetailsService: ApiDetailsService) {
 
-    private val client = HttpClient() {
-        install(ContentNegotiation) {
-            install(HttpCache)
-            json(Json {
-                prettyPrint = true
-                isLenient = true
-                ignoreUnknownKeys = true
-            })
-        }
-        install(Logging) {
-            logger = object: Logger {
-                override fun log(message: String) {
-                    apiDetailsService.logApiCalls(message)
-                }
-            }
-            level = LogLevel.ALL
-        }
-        /* TODO: Auth as basic
-        if (apiDetailsService.getUserName().isNotEmpty() && apiDetailsService.getPassword().isNotEmpty()) {
+    var client = createHttpClient()
 
-            install(Auth) {
-                basic {
-                    credentials {
-                        BasicAuthCredentials(username = apiDetailsService.getUserName(), password = apiDetailsService.getPassword())
-                    }
-                    sendWithoutRequest {
-                        true
+    private fun createHttpClient(): HttpClient {
+        return HttpClient {
+            install(ContentNegotiation) {
+                install(HttpCache)
+                json(Json {
+                    prettyPrint = true
+                    isLenient = true
+                    ignoreUnknownKeys = true
+                })
+            }
+            install(Logging) {
+                logger = object : Logger {
+                    override fun log(message: String) {
+                        apiDetailsService.logApiCalls(message)
                     }
                 }
+                level = LogLevel.ALL
             }
-        }*/
-        expectSuccess = false
+            /* TODO: Auth as basic
+            if (apiDetailsService.getUserName().isNotEmpty() && apiDetailsService.getPassword().isNotEmpty()) {
+
+                install(Auth) {
+                    basic {
+                        credentials {
+                            BasicAuthCredentials(username = apiDetailsService.getUserName(), password = apiDetailsService.getPassword())
+                        }
+                        sendWithoutRequest {
+                            true
+                        }
+                    }
+                }
+            }*/
+            expectSuccess = false
+        }
     }
 
-    private fun url(path: String) =
+    fun url(path: String) =
         "${apiDetailsService.getBaseUrl()}$path"
 
+    fun refreshLoginInformation() {
+        apiDetailsService.refresh()
+        client = createHttpClient()
+    }
 
     suspend fun login(): SelfossModel.SuccessResponse? =
         client.get(url("/login")) {
@@ -66,10 +70,10 @@ class SelfossApi(private val apiDetailsService: ApiDetailsService) {
         type: String,
         items: Int,
         offset: Int,
-        tag: String? = "",
-        source: Long? = null,
-        search: String? = "",
-        updatedSince: String? = ""
+        tag: String?,
+        source: Long?,
+        search: String?,
+        updatedSince: String?
     ): List<SelfossModel.Item>? =
         client.get(url("/items")) {
                 parameter("username", apiDetailsService.getUserName())
@@ -164,7 +168,7 @@ class SelfossApi(private val apiDetailsService: ApiDetailsService) {
             createSource(title, url, spout, tags, filter)
         }
 
-    private suspend fun createSource(
+    suspend fun createSource(
         title: String,
         url: String,
         spout: String,
@@ -182,7 +186,7 @@ class SelfossApi(private val apiDetailsService: ApiDetailsService) {
             }
         ).body()
 
-    private suspend fun createSource2(
+    suspend fun createSource2(
         title: String,
         url: String,
         spout: String,

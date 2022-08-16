@@ -13,31 +13,30 @@ import bou.amine.apps.readerforselfossv2.android.utils.*
 import bou.amine.apps.readerforselfossv2.android.utils.customtabs.CustomTabActivityHelper
 import bou.amine.apps.readerforselfossv2.android.utils.glide.bitmapCenterCrop
 import bou.amine.apps.readerforselfossv2.android.utils.glide.circularBitmapDrawable
-import bou.amine.apps.readerforselfossv2.rest.SelfossApi
+import bou.amine.apps.readerforselfossv2.repository.Repository
 import bou.amine.apps.readerforselfossv2.rest.SelfossModel
-import bou.amine.apps.readerforselfossv2.service.ApiDetailsService
-import bou.amine.apps.readerforselfossv2.service.SearchService
-import bou.amine.apps.readerforselfossv2.utils.DateUtils
 import com.amulyakhare.textdrawable.TextDrawable
 import com.amulyakhare.textdrawable.util.ColorGenerator
+import org.kodein.di.DI
+import org.kodein.di.android.closestDI
+import org.kodein.di.instance
 
 class ItemListAdapter(
     override val app: Activity,
     override var items: ArrayList<SelfossModel.Item>,
-    override val api: SelfossApi,
-    override val apiDetailsService: ApiDetailsService,
     override val db: AppDatabase,
     private val helper: CustomTabActivityHelper,
     private val internalBrowser: Boolean,
     private val articleViewer: Boolean,
-    override val userIdentifier: String,
     override val appColors: AppColors,
     override val config: Config,
-    override val searchService: SearchService,
     override val updateItems: (ArrayList<SelfossModel.Item>) -> Unit
 ) : ItemsAdapter<ItemListAdapter.ViewHolder>() {
     private val generator: ColorGenerator = ColorGenerator.MATERIAL
     private val c: Context = app.baseContext
+
+    override val di: DI by closestDI(app)
+    override val repository : Repository by instance()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = ListItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
@@ -54,11 +53,11 @@ class ItemListAdapter(
 
             binding.title.setLinkTextColor(appColors.colorAccent)
 
-            binding.sourceTitleAndDate.text = itm.sourceAndDateText(DateUtils(apiDetailsService))
+            binding.sourceTitleAndDate.text = itm.sourceAndDateText(repository.dateUtils)
 
-            if (itm.getThumbnail(apiDetailsService.getBaseUrl()).isEmpty()) {
+            if (itm.getThumbnail(repository.baseUrl).isEmpty()) {
 
-                if (itm.getIcon(apiDetailsService.getBaseUrl()).isEmpty()) {
+                if (itm.getIcon(repository.baseUrl).isEmpty()) {
                     val color = generator.getColor(itm.getSourceTitle())
 
                     val drawable =
@@ -69,10 +68,10 @@ class ItemListAdapter(
 
                     binding.itemImage.setImageDrawable(drawable)
                 } else {
-                    c.circularBitmapDrawable(config, itm.getIcon(apiDetailsService.getBaseUrl()), binding.itemImage)
+                    c.circularBitmapDrawable(config, itm.getIcon(repository.baseUrl), binding.itemImage)
                 }
             } else {
-                c.bitmapCenterCrop(config, itm.getThumbnail(apiDetailsService.getBaseUrl()), binding.itemImage)
+                c.bitmapCenterCrop(config, itm.getThumbnail(repository.baseUrl), binding.itemImage)
             }
         }
     }
@@ -97,8 +96,7 @@ class ItemListAdapter(
                     customTabsIntent,
                     internalBrowser,
                     articleViewer,
-                    app,
-                    searchService
+                    app
                 )
             }
         }
