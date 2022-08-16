@@ -38,10 +38,6 @@ class MyApp : MultiDexApplication(), DIAware {
         config = Config()
         settings = Settings()
 
-        if (settings.getString("unique_id", "").isEmpty()) {
-            settings.putString("unique_id", randomUUID().toString())
-        }
-
         initDrawerImageLoader()
 
         initTheme()

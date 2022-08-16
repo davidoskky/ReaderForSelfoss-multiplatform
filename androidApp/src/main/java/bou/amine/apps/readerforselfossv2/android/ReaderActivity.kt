@@ -35,7 +35,6 @@ class ReaderActivity : AppCompatActivity(), DIAware {
 
     private var markOnScroll: Boolean = false
     private var currentItem: Int = 0
-    private lateinit var userIdentifier: String
     private lateinit var appColors: AppColors
 
     private lateinit var toolbarMenu: Menu
@@ -89,7 +88,6 @@ class ReaderActivity : AppCompatActivity(), DIAware {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.setDisplayShowHomeEnabled(true)
 
-        userIdentifier = settings.getString("unique_id", "")
         markOnScroll = settings.getBoolean("mark_on_scroll", false)
         activeAlignment = settings.getInt("text_align", JUSTIFY)
 

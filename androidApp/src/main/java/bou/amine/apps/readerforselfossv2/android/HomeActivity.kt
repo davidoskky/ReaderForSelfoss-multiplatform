@@ -101,7 +101,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
     private var fullHeightCards: Boolean = false
     private var itemsNumber: Int = 200
     private var elementsShown: ItemType = ItemType.UNREAD
-    private var userIdentifier: String = ""
     private var displayAccountHeader: Boolean = false
     private var infiniteScroll: Boolean = false
     private var lastFetchDone: Boolean = false
@@ -357,7 +356,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
         displayAllCount = settings.getBoolean("display_other_count", false)
         fullHeightCards = settings.getBoolean("full_height_cards", false)
         itemsNumber = settings.getString("prefer_api_items_number", "200").toInt()
-        userIdentifier = settings.getString("unique_id", "")
         displayAccountHeader = settings.getBoolean("account_header_displaying", false)
         infiniteScroll = settings.getBoolean("infinite_loading", false)
         updateSources = settings.getBoolean("update_sources", true)
@@ -928,7 +926,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
                             articleViewer,
                             fullHeightCards,
                             appColors,
-                            userIdentifier,
                             config
                         ) {
                             updateItems(it)
@@ -942,7 +939,6 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
                             customTabActivityHelper,
                             internalBrowser,
                             articleViewer,
-                            userIdentifier,
                             appColors,
                             config
                         ) {

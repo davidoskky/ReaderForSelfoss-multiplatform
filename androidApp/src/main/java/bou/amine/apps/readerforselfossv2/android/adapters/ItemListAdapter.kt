@@ -28,7 +28,6 @@ class ItemListAdapter(
     private val helper: CustomTabActivityHelper,
     private val internalBrowser: Boolean,
     private val articleViewer: Boolean,
-    override val userIdentifier: String,
     override val appColors: AppColors,
     override val config: Config,
     override val updateItems: (ArrayList<SelfossModel.Item>) -> Unit

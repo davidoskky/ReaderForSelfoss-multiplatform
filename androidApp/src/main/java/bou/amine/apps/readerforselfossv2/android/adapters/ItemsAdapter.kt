@@ -21,7 +21,6 @@ abstract class ItemsAdapter<VH : RecyclerView.ViewHolder?> : RecyclerView.Adapte
     abstract var items: ArrayList<SelfossModel.Item>
     abstract val repository: Repository
     abstract val db: AppDatabase
-    abstract val userIdentifier: String
     abstract val app: Activity
     abstract val appColors: AppColors
     abstract val config: Config

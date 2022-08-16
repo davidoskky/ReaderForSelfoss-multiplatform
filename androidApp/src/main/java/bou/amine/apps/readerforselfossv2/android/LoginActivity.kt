@@ -34,7 +34,6 @@ class LoginActivity() : AppCompatActivity(), DIAware {
     private var isWithHTTPLogin = false
 
     private val settings = Settings()
-    private lateinit var userIdentifier: String
     private lateinit var appColors: AppColors
     private lateinit var binding: ActivityLoginBinding
 
@@ -53,8 +52,6 @@ class LoginActivity() : AppCompatActivity(), DIAware {
         setSupportActionBar(binding.toolbar)
 
         handleBaseUrlFail()
-
-        userIdentifier = settings.getString("unique_id", "")
 
         if (settings.getString("url", "").isNotEmpty()) {
             goToMain()
