@@ -11,28 +11,28 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDetailsService) : Repository {
+class Repository(private val api: SelfossApi, private val apiDetails: ApiDetailsService) {
     val settings = Settings()
 
-    override var items = ArrayList<SelfossModel.Item>()
+    var items = ArrayList<SelfossModel.Item>()
 
-    override var baseUrl = apiDetails.getBaseUrl()
-    override lateinit var dateUtils: DateUtils
+    var baseUrl = apiDetails.getBaseUrl()
+    lateinit var dateUtils: DateUtils
 
-    override var displayedItems = ItemType.UNREAD
+    var displayedItems = ItemType.UNREAD
 
-    override var tagFilter: SelfossModel.Tag? = null
-    override var sourceFilter: SelfossModel.Source? = null
-    override var searchFilter: String? = null
+    var tagFilter: SelfossModel.Tag? = null
+    var sourceFilter: SelfossModel.Source? = null
+    var searchFilter: String? = null
 
-    override var itemsCaching = settings.getBoolean("items_caching", false)
+    var itemsCaching = settings.getBoolean("items_caching", false)
 
-    override var apiMajorVersion = 0
-    override var badgeUnread = 0
+    var apiMajorVersion = 0
+    var badgeUnread = 0
     set(value) {field = if (value < 0) { 0 } else { value } }
-    override var badgeAll = 0
+    var badgeAll = 0
     set(value) {field = if (value < 0) { 0 } else { value } }
-    override var badgeStarred = 0
+    var badgeStarred = 0
     set(value) {field = if (value < 0) { 0 } else { value } }
 
     init {
@@ -44,7 +44,7 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         }
     }
 
-    override suspend fun getNewerItems(): ArrayList<SelfossModel.Item> {
+    suspend fun getNewerItems(): ArrayList<SelfossModel.Item> {
         // TODO: Check connectivity, use the updatedSince parameter
         val fetchedItems = api.getItems(displayedItems.type,
             settings.getString("prefer_api_items_number", "200").toInt(),
@@ -60,7 +60,7 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         return items
     }
 
-    override suspend fun getOlderItems(): ArrayList<SelfossModel.Item> {
+    suspend fun getOlderItems(): ArrayList<SelfossModel.Item> {
         // TODO: Check connectivity
         val offset = items.size
         val fetchedItems = api.getItems(displayedItems.type,
@@ -77,7 +77,7 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         return items
     }
 
-    override suspend fun allItems(itemType: ItemType): List<SelfossModel.Item>? =
+    suspend fun allItems(itemType: ItemType): List<SelfossModel.Item>? =
         api.getItems(itemType.type, 200, 0, tagFilter?.tag, sourceFilter?.id?.toLong(), searchFilter, null)
 
     private fun appendItems(fetchedItems: List<SelfossModel.Item>) {
@@ -93,7 +93,7 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         items.sortByDescending { dateUtils.parseDate(it.datetime) }
     }
 
-    override suspend fun reloadBadges(): Boolean {
+    suspend fun reloadBadges(): Boolean {
         // TODO: Check connectivity, calculate from DB
         var success = false
         val response = api.stats()
@@ -106,22 +106,22 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         return success
     }
 
-    override suspend fun getTags(): List<SelfossModel.Tag>? {
+    suspend fun getTags(): List<SelfossModel.Tag>? {
         // TODO: Check success, store in DB
         return api.tags()
     }
 
-    override suspend fun getSpouts(): Map<String, SelfossModel.Spout>? {
+    suspend fun getSpouts(): Map<String, SelfossModel.Spout>? {
         // TODO: Check success, store in DB
         return api.spouts()
     }
 
-    override suspend fun getSources(): ArrayList<SelfossModel.Source>? {
+    suspend fun getSources(): ArrayList<SelfossModel.Source>? {
         // TODO: Check success
         return api.sources()
     }
 
-    override suspend fun markAsRead(id: Int): Boolean {
+    suspend fun markAsRead(id: Int): Boolean {
         // TODO: Check internet connection
         val success = api.markAsRead(id.toString())?.isSuccess == true
 
@@ -131,7 +131,7 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         return success
     }
 
-    override suspend fun unmarkAsRead(id: Int): Boolean {
+    suspend fun unmarkAsRead(id: Int): Boolean {
         // TODO: Check internet connection
         val success = api.unmarkAsRead(id.toString())?.isSuccess == true
 
@@ -141,7 +141,7 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         return success
     }
 
-    override suspend fun starr(id: Int): Boolean {
+    suspend fun starr(id: Int): Boolean {
         // TODO: Check success, store in DB
         val success = api.starr(id.toString())?.isSuccess == true
 
@@ -151,7 +151,7 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         return success
     }
 
-    override suspend fun unstarr(id: Int): Boolean {
+    suspend fun unstarr(id: Int): Boolean {
         // TODO: Check internet connection
         val success = api.unstarr(id.toString())?.isSuccess == true
 
@@ -161,7 +161,7 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         return success
     }
 
-    override suspend fun markAllAsRead(ids: List<Int>): Boolean {
+    suspend fun markAllAsRead(ids: List<Int>): Boolean {
         // TODO: Check Internet connectivity, store in DB
 
         val success = api.markAllAsRead(ids.map { it.toString() })?.isSuccess == true
@@ -207,7 +207,7 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         }
     }
 
-    override suspend fun createSource(
+    suspend fun createSource(
         title: String,
         url: String,
         spout: String,
@@ -227,7 +227,7 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         return response != null
     }
 
-    override suspend fun deleteSource(id: Int): Boolean {
+    suspend fun deleteSource(id: Int): Boolean {
         // TODO: Check connectivity, store in DB
         var success = false
         val response = api.deleteSource(id)
@@ -238,13 +238,13 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         return success
     }
 
-    override suspend fun updateRemote(): Boolean {
+    suspend fun updateRemote(): Boolean {
         // TODO: Handle connectivity issues
         val response = api.update()
         return response?.isSuccess ?: false
     }
 
-    override suspend fun login(): Boolean {
+    suspend fun login(): Boolean {
         var result = false
         try {
             val response = api.login()
@@ -257,7 +257,7 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         return result
     }
 
-    override fun refreshLoginInformation(url: String, login: String, password: String,
+    fun refreshLoginInformation(url: String, login: String, password: String,
                                          httpLogin: String, httpPassword: String,
                                          isSelfSignedCert: Boolean) {
         settings.putString("url", url)

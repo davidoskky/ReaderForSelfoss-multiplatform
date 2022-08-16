@@ -13,7 +13,6 @@ import bou.amine.apps.readerforselfossv2.DI.networkModule
 import bou.amine.apps.readerforselfossv2.android.utils.Config
 import bou.amine.apps.readerforselfossv2.android.utils.glide.loadMaybeBasicAuth
 import bou.amine.apps.readerforselfossv2.repository.Repository
-import bou.amine.apps.readerforselfossv2.repository.RepositoryImpl
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
 import com.ftinc.scoop.Scoop
@@ -21,13 +20,12 @@ import com.mikepenz.materialdrawer.util.AbstractDrawerImageLoader
 import com.mikepenz.materialdrawer.util.DrawerImageLoader
 import com.russhwolf.settings.Settings
 import org.kodein.di.*
-import java.util.UUID.randomUUID
 
 class MyApp : MultiDexApplication(), DIAware {
 
     override val di by DI.lazy {
         import(networkModule)
-        bind<Repository>() with singleton { RepositoryImpl(instance(), instance()) }
+        bind<Repository>() with singleton { Repository(instance(), instance()) }
     }
 
     private lateinit var config: Config
