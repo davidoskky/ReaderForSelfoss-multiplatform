@@ -12,61 +12,9 @@ import io.ktor.client.plugins.logging.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
 
-interface SelfossApi {
-    val client: HttpClient
-    fun url(path: String): String
+class SelfossApi(private val apiDetailsService: ApiDetailsService) {
 
-    fun refreshLoginInformation()
-
-    suspend fun login(): SelfossModel.SuccessResponse?
-
-    suspend fun getItems(
-        type: String,
-        items: Int,
-        offset: Int,
-        tag: String? = "",
-        source: Long? = null,
-        search: String? = "",
-        updatedSince: String? = ""
-    ): List<SelfossModel.Item>?
-
-    suspend fun stats(): SelfossModel.Stats?
-
-    suspend fun tags(): List<SelfossModel.Tag>?
-
-    suspend fun update(): SelfossModel.SuccessResponse?
-
-    suspend fun spouts(): Map<String, SelfossModel.Spout>?
-
-    suspend fun sources(): ArrayList<SelfossModel.Source>?
-
-    suspend fun version(): SelfossModel.ApiVersion?
-
-    suspend fun markAsRead(id: String): SelfossModel.SuccessResponse?
-
-    suspend fun unmarkAsRead(id: String): SelfossModel.SuccessResponse?
-
-    suspend fun starr(id: String): SelfossModel.SuccessResponse?
-
-    suspend fun unstarr(id: String): SelfossModel.SuccessResponse?
-
-    suspend fun markAllAsRead(ids: List<String>): SelfossModel.SuccessResponse?
-
-    suspend fun createSourceForVersion(
-        title: String,
-        url: String,
-        spout: String,
-        tags: String,
-        filter: String,
-        version: Int
-    ): SelfossModel.SuccessResponse?
-
-    suspend fun deleteSource(id: Int): SelfossModel.SuccessResponse?
-}
-
-class SelfossApiImpl(private val apiDetailsService: ApiDetailsService) : SelfossApi {
-
-    override var client = createHttpClient()
+    var client = createHttpClient()
 
     private fun createHttpClient(): HttpClient {
         return HttpClient {
@@ -104,21 +52,21 @@ class SelfossApiImpl(private val apiDetailsService: ApiDetailsService) : Selfoss
         }
     }
 
-    override fun url(path: String) =
+    fun url(path: String) =
         "${apiDetailsService.getBaseUrl()}$path"
 
-    override fun refreshLoginInformation() {
+    fun refreshLoginInformation() {
         apiDetailsService.refresh()
         client = createHttpClient()
     }
 
-    override suspend fun login(): SelfossModel.SuccessResponse? =
+    suspend fun login(): SelfossModel.SuccessResponse? =
         client.get(url("/login")) {
             parameter("username", apiDetailsService.getUserName())
             parameter("password", apiDetailsService.getPassword())
         }.body()
 
-    override suspend fun getItems(
+    suspend fun getItems(
         type: String,
         items: Int,
         offset: Int,
@@ -139,64 +87,64 @@ class SelfossApiImpl(private val apiDetailsService: ApiDetailsService) : Selfoss
                 parameter("offset", offset)
             }.body()
 
-    override suspend fun stats(): SelfossModel.Stats? =
+    suspend fun stats(): SelfossModel.Stats? =
         client.get(url("/stats")) {
                 parameter("username", apiDetailsService.getUserName())
                 parameter("password", apiDetailsService.getPassword())
             }.body()
 
-    override suspend fun tags(): List<SelfossModel.Tag>? =
+    suspend fun tags(): List<SelfossModel.Tag>? =
         client.get(url("/tags")) {
                 parameter("username", apiDetailsService.getUserName())
                 parameter("password", apiDetailsService.getPassword())
             }.body()
 
-    override suspend fun update(): SelfossModel.SuccessResponse? =
+    suspend fun update(): SelfossModel.SuccessResponse? =
         client.get(url("/update")) {
                 parameter("username", apiDetailsService.getUserName())
                 parameter("password", apiDetailsService.getPassword())
             }.body()
 
-    override suspend fun spouts(): Map<String, SelfossModel.Spout>? =
+    suspend fun spouts(): Map<String, SelfossModel.Spout>? =
         client.get(url("/sources/spouts")) {
                 parameter("username", apiDetailsService.getUserName())
                 parameter("password", apiDetailsService.getPassword())
             }.body()
 
-    override suspend fun sources(): ArrayList<SelfossModel.Source>? =
+    suspend fun sources(): ArrayList<SelfossModel.Source>? =
         client.get(url("/sources/list")) {
                 parameter("username", apiDetailsService.getUserName())
                 parameter("password", apiDetailsService.getPassword())
             }.body()
 
-    override suspend fun version(): SelfossModel.ApiVersion? =
+    suspend fun version(): SelfossModel.ApiVersion? =
         client.get(url("/api/about")).body()
 
-    override suspend fun markAsRead(id: String): SelfossModel.SuccessResponse? =
+    suspend fun markAsRead(id: String): SelfossModel.SuccessResponse? =
         client.post(url("/mark/$id")) {
             parameter("username", apiDetailsService.getUserName())
             parameter("password", apiDetailsService.getPassword())
         }.body()
 
-    override suspend fun unmarkAsRead(id: String): SelfossModel.SuccessResponse? =
+    suspend fun unmarkAsRead(id: String): SelfossModel.SuccessResponse? =
         client.post(url("/unmark/$id")) {
             parameter("username", apiDetailsService.getUserName())
             parameter("password", apiDetailsService.getPassword())
         }.body()
 
-    override suspend fun starr(id: String): SelfossModel.SuccessResponse? =
+    suspend fun starr(id: String): SelfossModel.SuccessResponse? =
         client.post(url("/starr/$id")) {
             parameter("username", apiDetailsService.getUserName())
             parameter("password", apiDetailsService.getPassword())
         }.body()
 
-    override suspend fun unstarr(id: String): SelfossModel.SuccessResponse? =
+    suspend fun unstarr(id: String): SelfossModel.SuccessResponse? =
         client.post(url("/unstarr/$id")) {
             parameter("username", apiDetailsService.getUserName())
             parameter("password", apiDetailsService.getPassword())
         }.body()
 
-    override suspend fun markAllAsRead(ids: List<String>): SelfossModel.SuccessResponse? =
+    suspend fun markAllAsRead(ids: List<String>): SelfossModel.SuccessResponse? =
         client.submitForm(
             url = url("/mark"),
             formParameters = Parameters.build {
@@ -206,7 +154,7 @@ class SelfossApiImpl(private val apiDetailsService: ApiDetailsService) : Selfoss
             }
         ).body()
 
-    override suspend fun createSourceForVersion(
+    suspend fun createSourceForVersion(
         title: String,
         url: String,
         spout: String,
@@ -256,7 +204,7 @@ class SelfossApiImpl(private val apiDetailsService: ApiDetailsService) : Selfoss
             }
         ).body()
 
-    override suspend fun deleteSource(id: Int): SelfossModel.SuccessResponse? =
+    suspend fun deleteSource(id: Int): SelfossModel.SuccessResponse? =
         client.delete(url("/source/$id")) {
                 parameter("username", apiDetailsService.getUserName())
                 parameter("password", apiDetailsService.getPassword())
