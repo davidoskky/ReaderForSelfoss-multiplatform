@@ -92,21 +92,6 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         items.sortByDescending { dateUtils.parseDate(it.datetime) }
     }
 
-    private fun filterSelectedItems(items: ArrayList<SelfossModel.Item>): ArrayList<SelfossModel.Item> {
-        val tmpItems = items
-        if (displayedItems == ItemType.UNREAD) {
-            tmpItems.removeAll { !it.unread }
-        } else if (displayedItems == ItemType.STARRED) {
-            tmpItems.removeAll { !it.starred }
-        }
-
-        if (tagFilter != null) {
-            tmpItems.removeAll { !it.tags.contains(tagFilter!!.tag) }
-        }
-
-        return tmpItems
-    }
-
     override suspend fun reloadBadges(): Boolean {
         // TODO: Check connectivity, calculate from DB
         var success = false
