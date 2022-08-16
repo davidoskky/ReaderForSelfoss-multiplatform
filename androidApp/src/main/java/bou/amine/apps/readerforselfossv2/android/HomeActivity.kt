@@ -893,9 +893,9 @@ class HomeActivity : AppCompatActivity(), SearchView.OnQueryTextListener, DIAwar
             binding.swipeRefreshLayout.isRefreshing = true
             repository.displayedItems = itemType
             items = if (appendResults) {
-                repository.getNewerItems()
-            } else {
                 repository.getOlderItems()
+            } else {
+                repository.getNewerItems()
             }
             binding.swipeRefreshLayout.isRefreshing = false
             handleListResult()

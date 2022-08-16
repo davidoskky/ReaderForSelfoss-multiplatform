@@ -83,8 +83,7 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
     private fun appendItems(fetchedItems: List<SelfossModel.Item>) {
         // TODO: Store in DB if enabled by user
         val fetchedIDS = fetchedItems.map { it.id }
-        val tmpItems = items
-        tmpItems.removeAll{ it.id in fetchedIDS }
+        val tmpItems = ArrayList(items.filterNot { it.id in fetchedIDS })
         tmpItems.addAll(fetchedItems)
         sortItems(tmpItems)
         items = tmpItems
