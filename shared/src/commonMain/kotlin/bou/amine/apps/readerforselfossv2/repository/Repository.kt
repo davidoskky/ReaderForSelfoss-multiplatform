@@ -28,6 +28,7 @@ interface Repository {
 
     suspend fun getNewerItems(): ArrayList<SelfossModel.Item>
     suspend fun getOlderItems(): ArrayList<SelfossModel.Item>
+    suspend fun allItems(itemType: ItemType): List<SelfossModel.Item>?
     suspend fun reloadBadges(): Boolean
     suspend fun getTags(): List<SelfossModel.Tag>?
     suspend fun getSpouts(): Map<String, SelfossModel.Spout>?

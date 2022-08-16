@@ -75,6 +75,9 @@ class RepositoryImpl(private val api: SelfossApi, private val apiDetails: ApiDet
         return items
     }
 
+    override suspend fun allItems(itemType: ItemType): List<SelfossModel.Item>? =
+        api.getItems(itemType.type, 200, 0, tagFilter?.tag, sourceFilter?.id?.toLong(), searchFilter)
+
     private fun appendItems(fetchedItems: List<SelfossModel.Item>) {
         // TODO: Store in DB if enabled by user
         val fetchedIDS = fetchedItems.map { it.id }
